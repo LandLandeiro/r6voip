@@ -6,6 +6,8 @@ function AudioControls({
   isSpeaking,
   audioLevel,
   threshold,
+  micVolume,
+  onMicVolumeChange,
   onToggleMute,
   onThresholdChange,
   onLeave,
@@ -41,6 +43,8 @@ function AudioControls({
       return () => window.removeEventListener('keydown', handleKeyCapture);
     }
   }, [isCapturingKey, handleKeyCapture]);
+
+  const micVolumePercent = Math.round((micVolume || 1) * 100);
 
   return (
     <div className="flex flex-col gap-4">
@@ -160,6 +164,27 @@ function AudioControls({
           <h4 className="text-sm font-display uppercase tracking-wider text-text-secondary mb-4">
             {t('audioSettings')}
           </h4>
+
+          {/* Microphone Volume */}
+          <div className="mb-4 pb-4 border-b border-tactical-border">
+            <div className="flex justify-between text-xs text-text-muted mb-2">
+              <span>{t('micVolume')}</span>
+              <span className="font-mono">{micVolumePercent}%</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="2"
+              step="0.05"
+              value={micVolume || 1}
+              onChange={(e) => onMicVolumeChange(parseFloat(e.target.value))}
+              className="w-full h-2 bg-tactical-elevated rounded-lg appearance-none cursor-pointer accent-accent-action"
+            />
+            <div className="flex justify-between text-xs text-text-muted mt-1">
+              <span>0%</span>
+              <span>200%</span>
+            </div>
+          </div>
 
           {/* Push to Talk toggle */}
           <div className="mb-4 pb-4 border-b border-tactical-border">

@@ -14,7 +14,7 @@ const ICE_SERVERS = [
  */
 export function usePeerConnections(socket, localStream, roomId) {
   const [myPeerId, setMyPeerId] = useState(null);
-  const [peers, setPeers] = useState(new Map()); // Map<socketId, {peerId, call, stream, name}>
+  const [peers, setPeers] = useState(new Map()); // Map<socketId, {peerId, call, stream, name, volume}>
   const [connectionStatus, setConnectionStatus] = useState('disconnected');
 
   const peerRef = useRef(null);
@@ -30,6 +30,29 @@ export function usePeerConnections(socket, localStream, roomId) {
     localStreamRef.current = localStream;
     console.log('[Peer] LocalStream updated:', localStream ? 'available' : 'null');
   }, [localStream]);
+
+  /**
+   * Update peer volume
+   */
+  const updatePeerVolume = useCallback((socketId, volume) => {
+    setPeers((prev) => {
+      const updated = new Map(prev);
+      const peerData = updated.get(socketId);
+      if (peerData) {
+        // Update audio element volume
+        if (peerData.audio) {
+          peerData.audio.volume = Math.max(0, Math.min(1, volume));
+        }
+        updated.set(socketId, { ...peerData, volume });
+
+        // Save to localStorage
+        const volumeSettings = JSON.parse(localStorage.getItem('r6voip-peer-volumes') || '{}');
+        volumeSettings[socketId] = volume;
+        localStorage.setItem('r6voip-peer-volumes', JSON.stringify(volumeSettings));
+      }
+      return updated;
+    });
+  }, []);
 
   /**
    * Handle a media call (incoming or outgoing)
@@ -69,11 +92,17 @@ export function usePeerConnections(socket, localStream, roomId) {
         // Find the socket ID for this peer
         for (const [socketId, peerData] of updated) {
           if (peerData.peerId === remotePeerId) {
+            // Load saved volume from localStorage
+            const volumeSettings = JSON.parse(localStorage.getItem('r6voip-peer-volumes') || '{}');
+            const savedVolume = volumeSettings[socketId] !== undefined ? volumeSettings[socketId] : 1.0;
+            audio.volume = savedVolume;
+
             updated.set(socketId, {
               ...peerData,
               stream: remoteStream,
               audio,
               connected: true,
+              volume: savedVolume,
             });
             break;
           }
@@ -263,6 +292,10 @@ export function usePeerConnections(socket, localStream, roomId) {
    * Add a peer to track (before we have their peerId)
    */
   const addPeer = useCallback((socketId, userData) => {
+    // Load saved volume
+    const volumeSettings = JSON.parse(localStorage.getItem('r6voip-peer-volumes') || '{}');
+    const savedVolume = volumeSettings[socketId] !== undefined ? volumeSettings[socketId] : 1.0;
+
     setPeers((prev) => {
       const updated = new Map(prev);
       updated.set(socketId, {
@@ -273,6 +306,7 @@ export function usePeerConnections(socket, localStream, roomId) {
         stream: null,
         audio: null,
         connected: false,
+        volume: savedVolume,
       });
       return updated;
     });
@@ -358,6 +392,7 @@ export function usePeerConnections(socket, localStream, roomId) {
     disconnectPeer,
     addPeer,
     updatePeer,
+    updatePeerVolume,
     removePeer,
     cleanup,
   };
