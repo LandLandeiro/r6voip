@@ -10,10 +10,15 @@ export function useAudio() {
   const [audioLevel, setAudioLevel] = useState(-100);
   const [error, setError] = useState(null);
   const [micPermission, setMicPermission] = useState('prompt'); // 'prompt' | 'granted' | 'denied'
+  const [micVolume, setMicVolume] = useState(() => {
+    const saved = localStorage.getItem('r6voip-mic-volume');
+    return saved ? parseFloat(saved) : 1.0;
+  });
 
   const audioContextRef = useRef(null);
   const streamRef = useRef(null);
   const sourceNodeRef = useRef(null);
+  const gainNodeRef = useRef(null);
   const noiseGateRef = useRef(null);
   const vadRef = useRef(null);
   const outputNodeRef = useRef(null);
@@ -57,6 +62,11 @@ export function useAudio() {
       const sourceNode = audioContext.createMediaStreamSource(stream);
       sourceNodeRef.current = sourceNode;
 
+      // Create Gain node for volume control
+      const gainNode = audioContext.createGain();
+      gainNode.gain.value = micVolume;
+      gainNodeRef.current = gainNode;
+
       // Create Noise Gate processor
       const noiseGate = new AudioWorkletNode(audioContext, 'noise-gate-processor');
       noiseGateRef.current = noiseGate;
@@ -70,8 +80,9 @@ export function useAudio() {
       outputNodeRef.current = destination;
       processedStreamRef.current = destination.stream;
 
-      // Connect the audio graph: source -> noiseGate -> vad -> destination
-      sourceNode.connect(noiseGate);
+      // Connect the audio graph: source -> gain -> noiseGate -> vad -> destination
+      sourceNode.connect(gainNode);
+      gainNode.connect(noiseGate);
       noiseGate.connect(vad);
       vad.connect(destination);
 
@@ -110,7 +121,7 @@ export function useAudio() {
         setError(`Failed to initialize audio: ${err.message}`);
       }
     }
-  }, [threshold, attackTime, releaseTime]);
+  }, [threshold, attackTime, releaseTime, micVolume]);
 
   /**
    * Update audio parameters
@@ -136,12 +147,25 @@ export function useAudio() {
   }, []);
 
   /**
+   * Update microphone volume
+   */
+  const updateMicVolume = useCallback((volume) => {
+    const clampedVolume = Math.max(0, Math.min(2, volume)); // 0% to 200%
+    setMicVolume(clampedVolume);
+    localStorage.setItem('r6voip-mic-volume', clampedVolume.toString());
+
+    if (gainNodeRef.current) {
+      gainNodeRef.current.gain.value = clampedVolume;
+    }
+  }, []);
+
+  /**
    * Toggle mute state
    */
   const toggleMute = useCallback(() => {
-    if (streamRef.current) {
+    if (processedStreamRef.current) {
       const newMuted = !isMuted;
-      streamRef.current.getAudioTracks().forEach((track) => {
+      processedStreamRef.current.getAudioTracks().forEach((track) => {
         track.enabled = !newMuted;
       });
       setIsMuted(newMuted);
@@ -157,8 +181,8 @@ export function useAudio() {
    * Set mute state directly (for PTT)
    */
   const setMuted = useCallback((muted) => {
-    if (streamRef.current) {
-      streamRef.current.getAudioTracks().forEach((track) => {
+    if (processedStreamRef.current) {
+      processedStreamRef.current.getAudioTracks().forEach((track) => {
         track.enabled = !muted;
       });
       setIsMuted(muted);
@@ -209,6 +233,7 @@ export function useAudio() {
     audioLevel,
     error,
     micPermission,
+    micVolume,
     // Parameters
     threshold,
     attackTime,
@@ -218,6 +243,7 @@ export function useAudio() {
     toggleMute,
     setMuted,
     updateParams,
+    updateMicVolume,
     getProcessedStream,
     getRawStream,
     cleanup,

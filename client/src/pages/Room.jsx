@@ -13,6 +13,7 @@ function Room({ socket, roomData, onLeave, onKicked, onError }) {
   const [users, setUsers] = useState(new Map());
   const [isInitializing, setIsInitializing] = useState(true);
   const hasInitialized = useRef(false);
+  const pttInitialized = useRef(false);
 
   // Push-to-Talk state
   const [pushToTalk, setPushToTalk] = useState(() => {
@@ -33,9 +34,11 @@ function Room({ socket, roomData, onLeave, onKicked, onError }) {
     error: audioError,
     micPermission,
     threshold,
+    micVolume,
     initAudio,
     toggleMute,
     updateParams,
+    updateMicVolume,
     getProcessedStream,
     getRawStream,
     cleanup: cleanupAudio,
@@ -54,6 +57,7 @@ function Room({ socket, roomData, onLeave, onKicked, onError }) {
     callPeer,
     addPeer,
     updatePeer,
+    updatePeerVolume,
     removePeer,
     cleanup: cleanupPeers,
   } = usePeerConnections(socket, localStream, roomData?.roomId);
@@ -62,20 +66,32 @@ function Room({ socket, roomData, onLeave, onKicked, onError }) {
   const handlePushToTalkChange = useCallback((enabled) => {
     setPushToTalk(enabled);
     localStorage.setItem('r6voip-ptt', enabled.toString());
-  }, []);
+
+    // When enabling PTT, start muted
+    if (enabled && setMuted) {
+      setMuted(true);
+      setIsPttActive(false);
+    }
+  }, [setMuted]);
 
   const handlePttKeyChange = useCallback((key) => {
     setPttKey(key);
     localStorage.setItem('r6voip-ptt-key', key);
   }, []);
 
-  // PTT key listeners
+  // PTT key listeners - fixed to not re-run setMuted on every state change
   useEffect(() => {
     if (!pushToTalk || !audioInitialized) return;
 
+    // Only set initial mute state once when PTT mode is first enabled
+    if (!pttInitialized.current) {
+      pttInitialized.current = true;
+      if (setMuted) setMuted(true);
+    }
+
     const handleKeyDown = (e) => {
       const keyName = e.key === ' ' ? 'Space' : e.key;
-      if (keyName === pttKey && !isPttActive) {
+      if (keyName === pttKey) {
         e.preventDefault();
         setIsPttActive(true);
         if (setMuted) setMuted(false);
@@ -94,14 +110,18 @@ function Room({ socket, roomData, onLeave, onKicked, onError }) {
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
 
-    // Start muted when PTT is enabled
-    if (setMuted) setMuted(true);
-
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [pushToTalk, pttKey, isPttActive, audioInitialized, setMuted]);
+  }, [pushToTalk, pttKey, audioInitialized, setMuted]);
+
+  // Reset PTT initialized flag when PTT is disabled
+  useEffect(() => {
+    if (!pushToTalk) {
+      pttInitialized.current = false;
+    }
+  }, [pushToTalk]);
 
   /**
    * Initialize audio and peer connection
@@ -259,6 +279,7 @@ function Room({ socket, roomData, onLeave, onKicked, onError }) {
     isHost,
     isLocal: true,
     connected: audioInitialized,
+    volume: micVolume,
   });
 
   // Add remote peers
@@ -271,6 +292,7 @@ function Room({ socket, roomData, onLeave, onKicked, onError }) {
       isHost: peerData.isHost,
       isLocal: false,
       connected: peerData.connected,
+      volume: peerData.volume !== undefined ? peerData.volume : 1.0,
     });
   });
 
@@ -320,6 +342,7 @@ function Room({ socket, roomData, onLeave, onKicked, onError }) {
                 user={user}
                 isLocalHost={isHost}
                 onKick={handleKickUser}
+                onVolumeChange={user.isLocal ? updateMicVolume : (vol) => updatePeerVolume(user.socketId, vol)}
               />
             ))}
 
@@ -351,6 +374,8 @@ function Room({ socket, roomData, onLeave, onKicked, onError }) {
             isSpeaking={isSpeaking}
             audioLevel={audioLevel}
             threshold={threshold}
+            micVolume={micVolume}
+            onMicVolumeChange={updateMicVolume}
             onToggleMute={handleToggleMute}
             onThresholdChange={(value) => updateParams({ threshold: value })}
             onLeave={handleLeave}
