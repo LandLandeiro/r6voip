@@ -1,0 +1,197 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base styles */
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    min-height: 100vh;
+    background-color: #0D0D0D;
+    color: #F2F2F2;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #1a1a1a;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #404040;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+}
+
+/* Component styles */
+@layer components {
+  /* Corner cut clip path for tactical look */
+  .clip-corner {
+    clip-path: polygon(
+      0 0,
+      calc(100% - 12px) 0,
+      100% 12px,
+      100% 100%,
+      12px 100%,
+      0 calc(100% - 12px)
+    );
+  }
+
+  .clip-corner-sm {
+    clip-path: polygon(
+      0 0,
+      calc(100% - 8px) 0,
+      100% 8px,
+      100% 100%,
+      8px 100%,
+      0 calc(100% - 8px)
+    );
+  }
+
+  /* Tactical button */
+  .btn-tactical {
+    @apply relative px-6 py-3 font-display font-semibold uppercase tracking-wider;
+    @apply bg-accent-action text-tactical-base;
+    @apply transition-all duration-200;
+    @apply hover:bg-accent-action-hover hover:scale-105;
+    @apply active:scale-95;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
+    clip-path: polygon(
+      0 0,
+      calc(100% - 8px) 0,
+      100% 8px,
+      100% 100%,
+      8px 100%,
+      0 calc(100% - 8px)
+    );
+  }
+
+  .btn-tactical-secondary {
+    @apply relative px-6 py-3 font-display font-semibold uppercase tracking-wider;
+    @apply bg-tactical-surface text-text-primary border border-tactical-border;
+    @apply transition-all duration-200;
+    @apply hover:bg-tactical-elevated hover:border-accent-action;
+    @apply active:scale-95;
+    clip-path: polygon(
+      0 0,
+      calc(100% - 8px) 0,
+      100% 8px,
+      100% 100%,
+      8px 100%,
+      0 calc(100% - 8px)
+    );
+  }
+
+  .btn-danger {
+    @apply relative px-6 py-3 font-display font-semibold uppercase tracking-wider;
+    @apply bg-status-alert text-white;
+    @apply transition-all duration-200;
+    @apply hover:brightness-110 hover:scale-105;
+    @apply active:scale-95;
+    clip-path: polygon(
+      0 0,
+      calc(100% - 8px) 0,
+      100% 8px,
+      100% 100%,
+      8px 100%,
+      0 calc(100% - 8px)
+    );
+  }
+
+  /* Input field */
+  .input-tactical {
+    @apply w-full px-4 py-3 bg-tactical-surface border border-tactical-border;
+    @apply text-text-primary placeholder-text-muted;
+    @apply focus:outline-none focus:border-accent-action focus:ring-1 focus:ring-accent-action;
+    @apply transition-all duration-200;
+    clip-path: polygon(
+      0 0,
+      calc(100% - 8px) 0,
+      100% 8px,
+      100% 100%,
+      8px 100%,
+      0 calc(100% - 8px)
+    );
+  }
+
+  .input-tactical-mono {
+    @apply input-tactical font-mono text-lg tracking-widest uppercase;
+  }
+
+  /* Card with tactical styling */
+  .card-tactical {
+    @apply bg-tactical-surface border border-tactical-border p-4;
+    @apply transition-all duration-300;
+    clip-path: polygon(
+      0 0,
+      calc(100% - 12px) 0,
+      100% 12px,
+      100% 100%,
+      12px 100%,
+      0 calc(100% - 12px)
+    );
+  }
+
+  /* Speaking indicator glow */
+  .speaking {
+    @apply animate-speaking-glow;
+    border-color: #4DE94C !important;
+  }
+
+  /* HUD scan line effect */
+  .hud-scanline::before {
+    content: '';
+    @apply absolute inset-0 pointer-events-none overflow-hidden;
+    background: linear-gradient(
+      transparent 0%,
+      rgba(255, 140, 0, 0.03) 50%,
+      transparent 100%
+    );
+    animation: scan-line 4s linear infinite;
+  }
+
+  /* Room code display */
+  .room-code {
+    @apply font-mono text-2xl tracking-[0.3em] text-accent-highlight;
+    text-shadow: 0 0 10px rgba(255, 238, 0, 0.5);
+  }
+}
+
+/* Utility classes */
+@layer utilities {
+  .text-glow-orange {
+    text-shadow: 0 0 10px rgba(255, 140, 0, 0.5);
+  }
+
+  .text-glow-green {
+    text-shadow: 0 0 10px rgba(77, 233, 76, 0.5);
+  }
+
+  .text-glow-yellow {
+    text-shadow: 0 0 10px rgba(255, 238, 0, 0.5);
+  }
+
+  .border-glow-green {
+    box-shadow: 0 0 10px rgba(77, 233, 76, 0.3), inset 0 0 10px rgba(77, 233, 76, 0.1);
+  }
+
+  .border-glow-orange {
+    box-shadow: 0 0 10px rgba(255, 140, 0, 0.3), inset 0 0 10px rgba(255, 140, 0, 0.1);
+  }
+}

@@ -1,0 +1,307 @@
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useSocketEvent } from '../hooks/useSocket';
+import { useAudio } from '../hooks/useAudio';
+import { usePeerConnections } from '../hooks/usePeerConnections';
+import UserCard from '../components/UserCard';
+import AudioControls from '../components/AudioControls';
+import RoomHeader from '../components/RoomHeader';
+
+function Room({ socket, roomData, onLeave, onKicked, onError }) {
+  const [isHost, setIsHost] = useState(roomData?.isHost || false);
+  const [users, setUsers] = useState(new Map());
+  const [isInitializing, setIsInitializing] = useState(true);
+  const hasInitialized = useRef(false);
+
+  // Audio management
+  const {
+    isInitialized: audioInitialized,
+    isMuted,
+    isSpeaking,
+    audioLevel,
+    error: audioError,
+    micPermission,
+    threshold,
+    initAudio,
+    toggleMute,
+    updateParams,
+    getProcessedStream,
+    getRawStream,
+    cleanup: cleanupAudio,
+  } = useAudio();
+
+  // Get the stream to use
+  const localStream = getProcessedStream() || getRawStream();
+
+  // Peer connections
+  const {
+    myPeerId,
+    peers,
+    connectionStatus,
+    initPeer,
+    callPeer,
+    addPeer,
+    updatePeer,
+    removePeer,
+    cleanup: cleanupPeers,
+  } = usePeerConnections(socket, localStream, roomData?.roomId);
+
+  /**
+   * Initialize audio and peer connection
+   */
+  useEffect(() => {
+    if (hasInitialized.current) return;
+    hasInitialized.current = true;
+
+    const initialize = async () => {
+      try {
+        // Initialize audio first
+        await initAudio();
+
+        // Then initialize PeerJS
+        const peerId = await initPeer();
+
+        // Register our peer ID with the server
+        if (socket && peerId) {
+          socket.emit('register-peer', { peerId });
+        }
+
+        // Add existing users from room data
+        if (roomData?.users) {
+          roomData.users.forEach((user) => {
+            if (user.socketId !== socket?.id) {
+              addPeer(user.socketId, {
+                peerId: user.peerId,
+                name: user.name,
+                isMuted: user.isMuted,
+                isHost: user.isHost,
+              });
+
+              // Call existing peers who already have a peerId
+              if (user.peerId) {
+                setTimeout(() => callPeer(user.peerId), 1000);
+              }
+            }
+          });
+        }
+
+        setIsInitializing(false);
+      } catch (err) {
+        console.error('[Room] Initialization error:', err);
+        onError('Failed to initialize audio/video. Please check your microphone permissions.');
+        setIsInitializing(false);
+      }
+    };
+
+    initialize();
+  }, []);
+
+  // Handle audio errors
+  useEffect(() => {
+    if (audioError) {
+      onError(audioError);
+    }
+  }, [audioError, onError]);
+
+  /**
+   * Socket event handlers
+   */
+
+  // New user joined
+  useSocketEvent(socket, 'user-joined', useCallback((data) => {
+    console.log('[Room] User joined:', data);
+    addPeer(data.socketId, {
+      peerId: data.peerId,
+      name: data.name,
+      isMuted: data.isMuted,
+      isHost: data.isHost,
+    });
+  }, [addPeer]));
+
+  // User left
+  useSocketEvent(socket, 'user-left', useCallback((data) => {
+    console.log('[Room] User left:', data);
+    removePeer(data.socketId);
+
+    // Check if we became the host
+    if (data.newHostId === socket?.id) {
+      setIsHost(true);
+    }
+  }, [removePeer, socket]));
+
+  // User was kicked
+  useSocketEvent(socket, 'user-kicked', useCallback((data) => {
+    console.log('[Room] User kicked:', data);
+    removePeer(data.socketId);
+  }, [removePeer]));
+
+  // We were kicked
+  useSocketEvent(socket, 'you-were-kicked', useCallback(() => {
+    console.log('[Room] We were kicked');
+    cleanupAudio();
+    cleanupPeers();
+    onKicked();
+  }, [cleanupAudio, cleanupPeers, onKicked]));
+
+  // User mute changed
+  useSocketEvent(socket, 'user-mute-changed', useCallback((data) => {
+    if (data.socketId !== socket?.id) {
+      updatePeer(data.socketId, { isMuted: data.isMuted });
+    }
+  }, [socket, updatePeer]));
+
+  // Room expired
+  useSocketEvent(socket, 'room-expired', useCallback(() => {
+    onError('Room has expired (24h limit reached)');
+    cleanupAudio();
+    cleanupPeers();
+    onLeave();
+  }, [cleanupAudio, cleanupPeers, onLeave, onError]));
+
+  /**
+   * Handle mute toggle
+   */
+  const handleToggleMute = useCallback(() => {
+    const newMuted = toggleMute();
+    if (socket) {
+      socket.emit('toggle-mute', { isMuted: newMuted });
+    }
+  }, [socket, toggleMute]);
+
+  /**
+   * Handle kick user
+   */
+  const handleKickUser = useCallback((targetSocketId) => {
+    if (!isHost) return;
+
+    socket.emit('kick-user', { targetSocketId }, (response) => {
+      if (response?.error) {
+        onError(response.error);
+      }
+    });
+  }, [socket, isHost, onError]);
+
+  /**
+   * Handle leave room
+   */
+  const handleLeave = useCallback(() => {
+    cleanupAudio();
+    cleanupPeers();
+    onLeave();
+  }, [cleanupAudio, cleanupPeers, onLeave]);
+
+  // Build user list for display
+  const userList = [];
+
+  // Add self first
+  userList.push({
+    socketId: socket?.id,
+    name: roomData?.myName || 'You',
+    isMuted,
+    isSpeaking: !isMuted && isSpeaking,
+    isHost,
+    isLocal: true,
+    connected: audioInitialized,
+  });
+
+  // Add remote peers
+  peers.forEach((peerData, socketId) => {
+    userList.push({
+      socketId,
+      name: peerData.name,
+      isMuted: peerData.isMuted,
+      isSpeaking: false, // We'd need remote VAD for this
+      isHost: peerData.isHost,
+      isLocal: false,
+      connected: peerData.connected,
+    });
+  });
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      {/* Header with room code */}
+      <RoomHeader
+        roomId={roomData?.roomId}
+        userCount={userList.length}
+        maxUsers={5}
+      />
+
+      {/* Main content */}
+      <main className="flex-1 p-4 md:p-8">
+        <div className="max-w-5xl mx-auto">
+          {/* Initialization overlay */}
+          {isInitializing && (
+            <div className="fixed inset-0 bg-tactical-base/90 z-50 flex items-center justify-center">
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 border-4 border-accent-action border-t-transparent rounded-full animate-spin mx-auto" />
+                <p className="text-text-primary font-display text-lg tracking-wider">
+                  ESTABLISHING SECURE CHANNEL...
+                </p>
+                {micPermission === 'prompt' && (
+                  <p className="text-text-secondary text-sm">
+                    Please allow microphone access when prompted
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Microphone permission denied */}
+          {micPermission === 'denied' && (
+            <div className="mb-6 p-4 bg-status-alert/20 border border-status-alert text-center">
+              <p className="text-status-alert font-medium">
+                Microphone access denied. Please enable microphone permissions in your browser settings.
+              </p>
+            </div>
+          )}
+
+          {/* User cards grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            {userList.map((user) => (
+              <UserCard
+                key={user.socketId}
+                user={user}
+                isLocalHost={isHost}
+                onKick={handleKickUser}
+              />
+            ))}
+
+            {/* Empty slots */}
+            {Array.from({ length: 5 - userList.length }).map((_, i) => (
+              <div
+                key={`empty-${i}`}
+                className="card-tactical p-4 opacity-30 border-dashed"
+              >
+                <div className="aspect-square flex items-center justify-center">
+                  <div className="text-center text-text-muted">
+                    <svg className="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                    </svg>
+                    <span className="text-xs uppercase tracking-wider">Awaiting Operator</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </main>
+
+      {/* Bottom controls */}
+      <footer className="sticky bottom-0 bg-tactical-base/95 backdrop-blur border-t border-tactical-border p-4">
+        <div className="max-w-5xl mx-auto">
+          <AudioControls
+            isMuted={isMuted}
+            isSpeaking={isSpeaking}
+            audioLevel={audioLevel}
+            threshold={threshold}
+            onToggleMute={handleToggleMute}
+            onThresholdChange={(value) => updateParams({ threshold: value })}
+            onLeave={handleLeave}
+            connectionStatus={connectionStatus}
+          />
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+export default Room;
