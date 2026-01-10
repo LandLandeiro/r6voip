@@ -63,28 +63,50 @@ export function usePeerConnections(socket, localStream, roomId) {
 
     call.on('stream', (remoteStream) => {
       console.log('[Peer] Received stream from:', remotePeerId);
+      console.log('[Peer] Stream tracks:', remoteStream.getTracks().map(t => `${t.kind}: ${t.enabled}`));
 
       // Create audio element for remote stream
-      const audio = new Audio();
+      const audio = document.createElement('audio');
+      audio.id = `audio-${remotePeerId}`;
       audio.srcObject = remoteStream;
       audio.autoplay = true;
       audio.playsInline = true;
 
-      // Handle autoplay restrictions - try to play and handle errors
-      const playPromise = audio.play();
-      if (playPromise !== undefined) {
-        playPromise.catch((error) => {
-          console.warn('[Peer] Autoplay blocked, will retry on user interaction:', error);
-          // Add a one-time click handler to start playback
-          const startPlayback = () => {
-            audio.play().catch(e => console.error('[Peer] Play failed:', e));
-            document.removeEventListener('click', startPlayback);
-            document.removeEventListener('keydown', startPlayback);
-          };
-          document.addEventListener('click', startPlayback, { once: true });
-          document.addEventListener('keydown', startPlayback, { once: true });
-        });
-      }
+      // Add to DOM for better browser compatibility
+      audio.style.display = 'none';
+      document.body.appendChild(audio);
+
+      // Handle autoplay restrictions with multiple retry attempts
+      const tryPlay = async (attempts = 0) => {
+        try {
+          await audio.play();
+          console.log('[Peer] Audio playback started successfully for:', remotePeerId);
+        } catch (error) {
+          console.warn(`[Peer] Autoplay attempt ${attempts + 1} failed:`, error.name, error.message);
+
+          if (attempts < 3) {
+            // Retry after a short delay
+            setTimeout(() => tryPlay(attempts + 1), 500);
+          } else {
+            // Add user interaction handlers as fallback
+            console.warn('[Peer] Autoplay blocked, waiting for user interaction');
+            const startPlayback = async () => {
+              try {
+                await audio.play();
+                console.log('[Peer] Audio started after user interaction');
+              } catch (e) {
+                console.error('[Peer] Play failed after interaction:', e);
+              }
+              document.removeEventListener('click', startPlayback);
+              document.removeEventListener('keydown', startPlayback);
+            };
+            document.addEventListener('click', startPlayback);
+            document.addEventListener('keydown', startPlayback);
+          }
+        }
+      };
+
+      tryPlay();
 
       // Store the stream with socket mapping
       setPeers((prev) => {
@@ -116,6 +138,14 @@ export function usePeerConnections(socket, localStream, roomId) {
       callsRef.current.delete(remotePeerId);
       pendingCallsRef.current.delete(remotePeerId);
 
+      // Remove audio element from DOM
+      const audioElement = document.getElementById(`audio-${remotePeerId}`);
+      if (audioElement) {
+        audioElement.pause();
+        audioElement.srcObject = null;
+        audioElement.remove();
+      }
+
       setPeers((prev) => {
         const updated = new Map(prev);
         for (const [socketId, peerData] of updated) {
@@ -123,6 +153,9 @@ export function usePeerConnections(socket, localStream, roomId) {
             if (peerData.audio) {
               peerData.audio.pause();
               peerData.audio.srcObject = null;
+              if (peerData.audio.parentNode) {
+                peerData.audio.remove();
+              }
             }
             updated.set(socketId, {
               ...peerData,
@@ -274,6 +307,18 @@ export function usePeerConnections(socket, localStream, roomId) {
       if (peerData.audio) {
         peerData.audio.pause();
         peerData.audio.srcObject = null;
+        if (peerData.audio.parentNode) {
+          peerData.audio.remove();
+        }
+      }
+      // Also remove by ID in case audio element wasn't stored in peerData
+      if (peerData.peerId) {
+        const audioElement = document.getElementById(`audio-${peerData.peerId}`);
+        if (audioElement) {
+          audioElement.pause();
+          audioElement.srcObject = null;
+          audioElement.remove();
+        }
       }
     });
 
@@ -338,12 +383,23 @@ export function usePeerConnections(socket, localStream, roomId) {
         // Close call if exists
         if (peerData.peerId) {
           disconnectPeer(peerData.peerId);
+
+          // Remove audio element from DOM
+          const audioElement = document.getElementById(`audio-${peerData.peerId}`);
+          if (audioElement) {
+            audioElement.pause();
+            audioElement.srcObject = null;
+            audioElement.remove();
+          }
         }
 
-        // Cleanup audio
+        // Cleanup audio stored in peerData
         if (peerData.audio) {
           peerData.audio.pause();
           peerData.audio.srcObject = null;
+          if (peerData.audio.parentNode) {
+            peerData.audio.remove();
+          }
         }
 
         updated.delete(socketId);

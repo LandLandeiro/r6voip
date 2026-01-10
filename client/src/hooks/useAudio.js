@@ -67,7 +67,7 @@ export function useAudio() {
       gainNode.gain.value = micVolume;
       gainNodeRef.current = gainNode;
 
-      // Create Noise Gate processor
+      // Create Noise Gate processor (for processed stream output)
       const noiseGate = new AudioWorkletNode(audioContext, 'noise-gate-processor');
       noiseGateRef.current = noiseGate;
 
@@ -80,11 +80,17 @@ export function useAudio() {
       outputNodeRef.current = destination;
       processedStreamRef.current = destination.stream;
 
-      // Connect the audio graph: source -> gain -> noiseGate -> vad -> destination
+      // Connect the audio graph:
+      // source -> gain -> vad (for speech detection) -> destination
+      // VAD must receive audio BEFORE noise gate to properly detect speech
+      // We removed noise gate from the chain because:
+      // 1. Raw stream is now used for WebRTC (with browser's built-in noise suppression)
+      // 2. Noise gate was blocking audio, preventing speech detection
       sourceNode.connect(gainNode);
-      gainNode.connect(noiseGate);
-      noiseGate.connect(vad);
+      gainNode.connect(vad);
       vad.connect(destination);
+
+      // Noise gate is still created but not connected - can be used in future if needed
 
       // Listen for VAD messages
       vad.port.onmessage = (event) => {
@@ -163,32 +169,46 @@ export function useAudio() {
    * Toggle mute state
    */
   const toggleMute = useCallback(() => {
+    const newMuted = !isMuted;
+
+    // Mute both raw and processed streams for WebRTC transmission
+    if (streamRef.current) {
+      streamRef.current.getAudioTracks().forEach((track) => {
+        track.enabled = !newMuted;
+      });
+    }
     if (processedStreamRef.current) {
-      const newMuted = !isMuted;
       processedStreamRef.current.getAudioTracks().forEach((track) => {
         track.enabled = !newMuted;
       });
-      setIsMuted(newMuted);
-      if (newMuted) {
-        setIsSpeaking(false);
-      }
-      return newMuted;
     }
-    return isMuted;
+
+    setIsMuted(newMuted);
+    if (newMuted) {
+      setIsSpeaking(false);
+    }
+    return newMuted;
   }, [isMuted]);
 
   /**
    * Set mute state directly (for PTT)
    */
   const setMuted = useCallback((muted) => {
+    // Mute both raw and processed streams for WebRTC transmission
+    if (streamRef.current) {
+      streamRef.current.getAudioTracks().forEach((track) => {
+        track.enabled = !muted;
+      });
+    }
     if (processedStreamRef.current) {
       processedStreamRef.current.getAudioTracks().forEach((track) => {
         track.enabled = !muted;
       });
-      setIsMuted(muted);
-      if (muted) {
-        setIsSpeaking(false);
-      }
+    }
+
+    setIsMuted(muted);
+    if (muted) {
+      setIsSpeaking(false);
     }
   }, []);
 
