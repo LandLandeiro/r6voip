@@ -1,93 +1,38 @@
-// NATO phonetic alphabet + R6S operator names for room prefixes
-const PREFIXES = [
-  // NATO Phonetic
-  'Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot', 'Golf', 'Hotel',
-  'India', 'Juliet', 'Kilo', 'Lima', 'Mike', 'November', 'Oscar', 'Papa',
-  'Quebec', 'Romeo', 'Sierra', 'Tango', 'Uniform', 'Victor', 'Whiskey',
-  'Xray', 'Yankee', 'Zulu',
-  // R6S Operators - Attackers
-  'Ash', 'Blitz', 'Buck', 'Capitao', 'Dokkaebi', 'Finka', 'Fuze', 'Glaz',
-  'Gridlock', 'Hibana', 'IQ', 'Jackal', 'Kali', 'Lion', 'Maverick',
-  'Montagne', 'Nomad', 'Nøkk', 'Sledge', 'Thatcher', 'Thermite', 'Twitch',
-  'Ying', 'Zofia', 'Ace', 'Amaru', 'Iana', 'Zero', 'Flores', 'Osa',
-  'Sens', 'Grim', 'Brava', 'Ram',
-  // R6S Operators - Defenders
-  'Alibi', 'Bandit', 'Castle', 'Caveira', 'Clash', 'Doc', 'Echo', 'Ela',
-  'Frost', 'Goyo', 'Jager', 'Kaid', 'Kapkan', 'Lesion', 'Maestro', 'Mira',
-  'Mozzie', 'Mute', 'Oryx', 'Pulse', 'Rook', 'Smoke', 'Tachanka',
-  'Valkyrie', 'Vigil', 'Wamai', 'Warden', 'Melusi', 'Aruni', 'Thunderbird',
-  'Thorn', 'Azami', 'Solis', 'Fenrir', 'Tubarao',
-  // Tactical callsigns
-  'Ghost', 'Hawk', 'Viper', 'Raven', 'Phoenix', 'Shadow', 'Storm',
-  'Thunder', 'Cobra', 'Falcon', 'Wolf', 'Eagle', 'Reaper', 'Spectre'
-];
-
-// Hex characters excluding ambiguous ones (0, O, 1, I, l)
-const HEX_CHARS = '23456789ABCDEF';
-
 /**
- * Generates a random room ID in format: Prefix-XXXX
- * Example: Bravo-7A4F, Ghost-F3C1
+ * Generates a simple 4-digit room code
+ * Example: 1234, 5678, 9012
  */
 export function generateRoomId() {
-  const prefix = PREFIXES[Math.floor(Math.random() * PREFIXES.length)];
-
-  let suffix = '';
-  for (let i = 0; i < 4; i++) {
-    suffix += HEX_CHARS[Math.floor(Math.random() * HEX_CHARS.length)];
-  }
-
-  return `${prefix}-${suffix}`;
+  // Generate 4 random digits (1000-9999 to avoid leading zeros)
+  const code = Math.floor(1000 + Math.random() * 9000);
+  return code.toString();
 }
 
 /**
- * Validates room ID format
+ * Validates room ID format (4 digits)
  */
 export function isValidRoomId(roomId) {
   if (!roomId || typeof roomId !== 'string') {
     return false;
   }
 
-  const parts = roomId.split('-');
-  if (parts.length !== 2) {
-    return false;
-  }
-
-  const [prefix, suffix] = parts;
-
-  // Check prefix is valid (case-insensitive)
-  const normalizedPrefix = prefix.charAt(0).toUpperCase() + prefix.slice(1).toLowerCase();
-  if (!PREFIXES.some(p => p.toLowerCase() === prefix.toLowerCase())) {
-    return false;
-  }
-
-  // Check suffix is 4 valid hex chars
-  if (suffix.length !== 4) {
-    return false;
-  }
-
-  const validChars = new Set(HEX_CHARS);
-  for (const char of suffix.toUpperCase()) {
-    if (!validChars.has(char)) {
-      return false;
-    }
-  }
-
-  return true;
+  // Must be exactly 4 digits
+  return /^\d{4}$/.test(roomId.trim());
 }
 
 /**
- * Normalizes room ID to consistent format (proper case prefix, uppercase suffix)
+ * Normalizes room ID (trim whitespace)
  */
 export function normalizeRoomId(roomId) {
-  if (!isValidRoomId(roomId)) {
+  if (!roomId || typeof roomId !== 'string') {
     return null;
   }
 
-  const [prefix, suffix] = roomId.split('-');
+  const normalized = roomId.trim();
 
-  // Find the correct casing for the prefix
-  const correctPrefix = PREFIXES.find(p => p.toLowerCase() === prefix.toLowerCase());
+  if (!isValidRoomId(normalized)) {
+    return null;
+  }
 
-  return `${correctPrefix}-${suffix.toUpperCase()}`;
+  return normalized;
 }

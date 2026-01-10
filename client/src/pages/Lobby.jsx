@@ -12,11 +12,8 @@ function Lobby({ socket, onJoinRoom, onError }) {
   };
 
   const handleRoomCodeChange = (e) => {
-    // Auto-format: uppercase, allow letters, numbers, and dash
-    const value = e.target.value
-      .toUpperCase()
-      .replace(/[^A-Z0-9-]/g, '')
-      .slice(0, 15);
+    // Only allow digits, max 4 characters
+    const value = e.target.value.replace(/\D/g, '').slice(0, 4);
     setRoomCode(value);
   };
 
@@ -51,8 +48,8 @@ function Lobby({ socket, onJoinRoom, onError }) {
       return;
     }
 
-    if (!roomCode.trim()) {
-      onError('Please enter a room code');
+    if (!roomCode.trim() || roomCode.length !== 4) {
+      onError('Please enter a valid 4-digit room code');
       return;
     }
 
@@ -81,9 +78,14 @@ function Lobby({ socket, onJoinRoom, onError }) {
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Logo/Title */}
-        <div className="text-center mb-10">
-          <h1 className="font-display text-5xl font-bold tracking-wider text-accent-action text-glow-orange">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <img
+            src="/logo.svg"
+            alt="r6voip"
+            className="w-48 h-auto mx-auto mb-4"
+          />
+          <h1 className="font-display text-4xl font-bold tracking-wider text-accent-action text-glow-orange">
             r6voip
           </h1>
           <p className="text-text-secondary mt-2 font-display tracking-wide">
@@ -149,21 +151,24 @@ function Lobby({ socket, onJoinRoom, onError }) {
           <div className="space-y-3">
             <div className="space-y-2">
               <label className="block text-sm font-display uppercase tracking-wider text-text-secondary">
-                Room Code
+                Room Code (4 digits)
               </label>
               <input
                 type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={roomCode}
                 onChange={handleRoomCodeChange}
-                placeholder="BRAVO-7A4F"
-                className="input-tactical-mono text-center"
+                placeholder="1234"
+                maxLength={4}
+                className="input-tactical font-mono text-3xl text-center tracking-[0.5em] py-4"
                 autoComplete="off"
               />
             </div>
 
             <button
               onClick={handleJoinRoom}
-              disabled={!isNameValid || !roomCode.trim() || isCreating || isJoining}
+              disabled={!isNameValid || roomCode.length !== 4 || isCreating || isJoining}
               className="btn-tactical-secondary w-full"
             >
               {isJoining ? (
