@@ -5,6 +5,8 @@ const ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' },
   { urls: 'stun:stun2.l.google.com:19302' },
+  { urls: 'stun:stun3.l.google.com:19302' },
+  { urls: 'stun:stun4.l.google.com:19302' },
 ];
 
 /**
@@ -19,64 +21,14 @@ export function usePeerConnections(socket, localStream, roomId) {
   const callsRef = useRef(new Map()); // Map<peerId, MediaConnection>
   const pendingCallsRef = useRef(new Set()); // Set of peerIds we're trying to call
 
-  /**
-   * Initialize PeerJS instance
-   */
-  const initPeer = useCallback(() => {
-    return new Promise((resolve, reject) => {
-      const peer = new Peer({
-        config: {
-          iceServers: ICE_SERVERS,
-        },
-        debug: 1, // Minimal logging
-      });
+  // IMPORTANT: Use a ref to always have access to the latest localStream
+  // This fixes the issue where the stream was null when incoming calls arrived
+  const localStreamRef = useRef(null);
 
-      peer.on('open', (id) => {
-        console.log('[Peer] Connected with ID:', id);
-        setMyPeerId(id);
-        setConnectionStatus('connected');
-        peerRef.current = peer;
-        resolve(id);
-      });
-
-      peer.on('error', (err) => {
-        console.error('[Peer] Error:', err);
-        setConnectionStatus('error');
-
-        if (err.type === 'unavailable-id') {
-          // Try reconnecting with a new ID
-          setTimeout(() => initPeer(), 1000);
-        } else {
-          reject(err);
-        }
-      });
-
-      peer.on('disconnected', () => {
-        console.log('[Peer] Disconnected');
-        setConnectionStatus('disconnected');
-
-        // Try to reconnect
-        if (!peer.destroyed) {
-          setTimeout(() => {
-            peer.reconnect();
-          }, 1000);
-        }
-      });
-
-      // Handle incoming calls
-      peer.on('call', (call) => {
-        console.log('[Peer] Incoming call from:', call.peer);
-
-        // Answer with our local stream
-        if (localStream) {
-          call.answer(localStream);
-          handleCall(call);
-        } else {
-          console.warn('[Peer] No local stream to answer with');
-          call.close();
-        }
-      });
-    });
+  // Keep the ref updated whenever localStream changes
+  useEffect(() => {
+    localStreamRef.current = localStream;
+    console.log('[Peer] LocalStream updated:', localStream ? 'available' : 'null');
   }, [localStream]);
 
   /**
@@ -94,6 +46,22 @@ export function usePeerConnections(socket, localStream, roomId) {
       audio.srcObject = remoteStream;
       audio.autoplay = true;
       audio.playsInline = true;
+
+      // Handle autoplay restrictions - try to play and handle errors
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((error) => {
+          console.warn('[Peer] Autoplay blocked, will retry on user interaction:', error);
+          // Add a one-time click handler to start playback
+          const startPlayback = () => {
+            audio.play().catch(e => console.error('[Peer] Play failed:', e));
+            document.removeEventListener('click', startPlayback);
+            document.removeEventListener('keydown', startPlayback);
+          };
+          document.addEventListener('click', startPlayback, { once: true });
+          document.addEventListener('keydown', startPlayback, { once: true });
+        });
+      }
 
       // Store the stream with socket mapping
       setPeers((prev) => {
@@ -146,10 +114,93 @@ export function usePeerConnections(socket, localStream, roomId) {
   }, []);
 
   /**
+   * Initialize PeerJS instance
+   */
+  const initPeer = useCallback(() => {
+    return new Promise((resolve, reject) => {
+      const peer = new Peer({
+        config: {
+          iceServers: ICE_SERVERS,
+        },
+        debug: 1, // Minimal logging
+      });
+
+      peer.on('open', (id) => {
+        console.log('[Peer] Connected with ID:', id);
+        setMyPeerId(id);
+        setConnectionStatus('connected');
+        peerRef.current = peer;
+        resolve(id);
+      });
+
+      peer.on('error', (err) => {
+        console.error('[Peer] Error:', err);
+        setConnectionStatus('error');
+
+        if (err.type === 'unavailable-id') {
+          // Try reconnecting with a new ID
+          setTimeout(() => initPeer(), 1000);
+        } else {
+          reject(err);
+        }
+      });
+
+      peer.on('disconnected', () => {
+        console.log('[Peer] Disconnected');
+        setConnectionStatus('disconnected');
+
+        // Try to reconnect
+        if (!peer.destroyed) {
+          setTimeout(() => {
+            peer.reconnect();
+          }, 1000);
+        }
+      });
+
+      // Handle incoming calls - USE REF to get latest stream!
+      peer.on('call', (call) => {
+        console.log('[Peer] Incoming call from:', call.peer);
+
+        // Use the ref to get the current stream value
+        const currentStream = localStreamRef.current;
+
+        if (currentStream) {
+          console.log('[Peer] Answering with local stream');
+          call.answer(currentStream);
+          handleCall(call);
+        } else {
+          console.warn('[Peer] No local stream yet, waiting...');
+          // Wait for stream to become available, then answer
+          const checkStream = setInterval(() => {
+            const stream = localStreamRef.current;
+            if (stream) {
+              clearInterval(checkStream);
+              console.log('[Peer] Stream now available, answering call');
+              call.answer(stream);
+              handleCall(call);
+            }
+          }, 100);
+
+          // Timeout after 10 seconds
+          setTimeout(() => {
+            clearInterval(checkStream);
+            if (!localStreamRef.current) {
+              console.error('[Peer] Timeout waiting for local stream');
+              call.close();
+            }
+          }, 10000);
+        }
+      });
+    });
+  }, [handleCall]);
+
+  /**
    * Call a specific peer
    */
   const callPeer = useCallback((peerId) => {
-    if (!peerRef.current || !localStream) {
+    const currentStream = localStreamRef.current;
+
+    if (!peerRef.current || !currentStream) {
       console.warn('[Peer] Cannot call - peer or stream not ready');
       return;
     }
@@ -162,11 +213,11 @@ export function usePeerConnections(socket, localStream, roomId) {
     console.log('[Peer] Calling peer:', peerId);
     pendingCallsRef.current.add(peerId);
 
-    const call = peerRef.current.call(peerId, localStream);
+    const call = peerRef.current.call(peerId, currentStream);
     if (call) {
       handleCall(call);
     }
-  }, [localStream, handleCall]);
+  }, [handleCall]);
 
   /**
    * Disconnect from a specific peer
@@ -285,8 +336,8 @@ export function usePeerConnections(socket, localStream, roomId) {
         return updated;
       });
 
-      // Call the new peer
-      if (peerId && localStream) {
+      // Call the new peer - use ref to check stream
+      if (peerId && localStreamRef.current) {
         setTimeout(() => callPeer(peerId), 500);
       }
     };
@@ -296,7 +347,7 @@ export function usePeerConnections(socket, localStream, roomId) {
     return () => {
       socket.off('peer-registered', handlePeerRegistered);
     };
-  }, [socket, localStream, callPeer]);
+  }, [socket, callPeer]);
 
   return {
     myPeerId,

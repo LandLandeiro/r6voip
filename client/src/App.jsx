@@ -2,8 +2,9 @@ import { useState, useCallback } from 'react';
 import Lobby from './pages/Lobby';
 import Room from './pages/Room';
 import { useSocket } from './hooks/useSocket';
+import { LanguageProvider } from './context/LanguageContext';
 
-function App() {
+function AppContent() {
   const [currentView, setCurrentView] = useState('lobby'); // 'lobby' | 'room'
   const [roomData, setRoomData] = useState(null);
   const [error, setError] = useState(null);
@@ -91,6 +92,14 @@ function App() {
         )}
       </main>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <LanguageProvider>
+      <AppContent />
+    </LanguageProvider>
   );
 }
 

@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react';
+import { useLanguage } from '../context/LanguageContext';
 
 function RoomHeader({ roomId, userCount, maxUsers }) {
+  const { t } = useLanguage();
   const [copied, setCopied] = useState(false);
 
   const handleCopyCode = useCallback(async () => {
@@ -36,11 +38,11 @@ function RoomHeader({ roomId, userCount, maxUsers }) {
           {/* Logo */}
           <div className="flex items-center gap-3">
             <h1 className="font-display text-xl font-bold tracking-wider text-accent-action">
-              r6voip
+              R6voip
             </h1>
             <span className="text-text-muted">|</span>
             <span className="text-sm text-text-secondary font-display uppercase tracking-wider">
-              Tactical Channel
+              {t('tacticalChannel')}
             </span>
           </div>
 
@@ -69,7 +71,7 @@ function RoomHeader({ roomId, userCount, maxUsers }) {
               `}
               title="Click to copy room code"
             >
-              <span className="text-xs text-text-muted uppercase tracking-wider">Room</span>
+              <span className="text-xs text-text-muted uppercase tracking-wider">{t('room')}</span>
               <span className="font-mono text-2xl tracking-[0.3em] text-accent-highlight" style={{ textShadow: '0 0 10px rgba(255, 238, 0, 0.5)' }}>
                 {roomId || '----'}
               </span>
