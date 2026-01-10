@@ -60,7 +60,7 @@ function RoomHeader({ roomId, userCount, maxUsers }) {
             <button
               onClick={handleCopyCode}
               className={`
-                flex items-center gap-2 px-4 py-2
+                flex items-center gap-3 px-5 py-2
                 bg-tactical-surface border transition-all
                 ${copied
                   ? 'border-status-online text-status-online'
@@ -69,8 +69,9 @@ function RoomHeader({ roomId, userCount, maxUsers }) {
               `}
               title="Click to copy room code"
             >
-              <span className="room-code text-base">
-                {roomId || 'Loading...'}
+              <span className="text-xs text-text-muted uppercase tracking-wider">Room</span>
+              <span className="font-mono text-2xl tracking-[0.3em] text-accent-highlight" style={{ textShadow: '0 0 10px rgba(255, 238, 0, 0.5)' }}>
+                {roomId || '----'}
               </span>
               {copied ? (
                 <svg className="w-4 h-4 text-status-online" fill="none" stroke="currentColor" viewBox="0 0 24 24">

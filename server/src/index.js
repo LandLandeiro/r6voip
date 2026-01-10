@@ -2,7 +2,7 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
-import { generateRoomId, isValidRoomId } from './roomUtils.js';
+import { generateRoomId, isValidRoomId, normalizeRoomId } from './roomUtils.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -110,14 +110,17 @@ io.on('connection', (socket) => {
       return callback({ error: 'Rate limit exceeded. Please wait before trying again.' });
     }
 
-    const { roomId, name } = data;
+    const { roomId: rawRoomId, name } = data;
 
     if (!name || name.length > 16) {
       return callback({ error: 'Invalid operator name (max 16 characters)' });
     }
 
-    if (!isValidRoomId(roomId)) {
-      return callback({ error: 'Invalid room code format' });
+    // Normalize the room ID
+    const roomId = normalizeRoomId(rawRoomId);
+
+    if (!roomId) {
+      return callback({ error: 'Invalid room code format (use 4 digits)' });
     }
 
     const room = rooms.get(roomId);
