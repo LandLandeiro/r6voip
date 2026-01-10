@@ -13,9 +13,9 @@ class NoiseGateProcessor extends AudioWorkletProcessor {
 
     // Default parameters
     this.threshold = -40; // dB
-    this.attackTime = 0.01; // 10ms
-    this.releaseTime = 0.2; // 200ms
-    this.holdTime = 0.05; // 50ms hold before release
+    this.attackTime = 0.005; // 5ms - faster attack for responsive voice
+    this.releaseTime = 0.25; // 250ms - slightly longer to avoid cutting words
+    this.holdTime = 0.1; // 100ms hold before release (increased to catch trailing sounds)
 
     // State
     this.envelope = 0;

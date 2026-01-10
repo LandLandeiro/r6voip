@@ -39,6 +39,7 @@ export default {
       animation: {
         'pulse-glow': 'pulse-glow 1.5s ease-in-out infinite',
         'speaking-glow': 'speaking-glow 0.8s ease-in-out infinite alternate',
+        'speaking-glow-filter': 'speaking-glow-filter 0.8s ease-in-out infinite alternate',
         'fade-in': 'fade-in 0.3s ease-out',
         'slide-up': 'slide-up 0.4s ease-out',
         'scan-line': 'scan-line 2s linear infinite',
@@ -58,6 +59,14 @@ export default {
           },
           '100%': {
             boxShadow: '0 0 15px rgba(77, 233, 76, 0.9), 0 0 30px rgba(77, 233, 76, 0.5), inset 0 0 10px rgba(77, 233, 76, 0.2)'
+          },
+        },
+        'speaking-glow-filter': {
+          '0%': {
+            filter: 'drop-shadow(0 0 4px rgba(77, 233, 76, 0.6)) drop-shadow(0 0 8px rgba(77, 233, 76, 0.3))'
+          },
+          '100%': {
+            filter: 'drop-shadow(0 0 8px rgba(77, 233, 76, 0.9)) drop-shadow(0 0 16px rgba(77, 233, 76, 0.5))'
           },
         },
         'fade-in': {
