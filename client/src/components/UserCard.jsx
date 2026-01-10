@@ -118,42 +118,44 @@ function UserCard({ user, isLocalHost, onKick, onVolumeChange }) {
           )}
         </div>
 
-        {/* Volume control */}
-        <div className="mt-3">
-          <button
-            onClick={() => setShowVolumeSlider(!showVolumeSlider)}
-            className={`
-              w-full py-1.5 text-xs font-display uppercase tracking-wider transition-all flex items-center justify-center gap-2
-              ${showVolumeSlider
-                ? 'bg-accent-action/20 text-accent-action'
-                : 'bg-tactical-elevated text-text-muted hover:bg-tactical-surface hover:text-text-secondary'
-              }
-            `}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-            </svg>
-            {volumePercent}%
-          </button>
+        {/* Volume control - only show for remote users */}
+        {!user.isLocal && (
+          <div className="mt-3">
+            <button
+              onClick={() => setShowVolumeSlider(!showVolumeSlider)}
+              className={`
+                w-full py-1.5 text-xs font-display uppercase tracking-wider transition-all flex items-center justify-center gap-2
+                ${showVolumeSlider
+                  ? 'bg-accent-action/20 text-accent-action'
+                  : 'bg-tactical-elevated text-text-muted hover:bg-tactical-surface hover:text-text-secondary'
+                }
+              `}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+              </svg>
+              {volumePercent}%
+            </button>
 
-          {showVolumeSlider && (
-            <div className="mt-2 px-2">
-              <input
-                type="range"
-                min={user.isLocal ? "0" : "0"}
-                max={user.isLocal ? "2" : "1"}
-                step="0.05"
-                value={user.volume || 1}
-                onChange={handleVolumeChange}
-                className="w-full h-2 bg-tactical-elevated rounded-lg appearance-none cursor-pointer accent-accent-action"
-              />
-              <div className="flex justify-between text-xs text-text-muted mt-1">
-                <span>0%</span>
-                <span>{user.isLocal ? '200%' : '100%'}</span>
+            {showVolumeSlider && (
+              <div className="mt-2 px-2">
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={user.volume || 1}
+                  onChange={handleVolumeChange}
+                  className="w-full h-2 bg-tactical-elevated rounded-lg appearance-none cursor-pointer accent-accent-action"
+                />
+                <div className="flex justify-between text-xs text-text-muted mt-1">
+                  <span>0%</span>
+                  <span>100%</span>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         {/* Kick button (only for host, not for self) */}
         {isLocalHost && !user.isLocal && (

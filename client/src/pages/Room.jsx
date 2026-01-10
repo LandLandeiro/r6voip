@@ -227,6 +227,13 @@ function Room({ socket, roomData, onLeave, onKicked, onError }) {
     }
   }, [socket, updatePeer]));
 
+  // User speaking state changed
+  useSocketEvent(socket, 'user-speaking-changed', useCallback((data) => {
+    if (data.socketId !== socket?.id) {
+      updatePeer(data.socketId, { isSpeaking: data.isSpeaking });
+    }
+  }, [socket, updatePeer]));
+
   // Room expired
   useSocketEvent(socket, 'room-expired', useCallback(() => {
     onError('Room has expired (24h limit reached)');
@@ -234,6 +241,20 @@ function Room({ socket, roomData, onLeave, onKicked, onError }) {
     cleanupPeers();
     onLeave();
   }, [cleanupAudio, cleanupPeers, onLeave, onError]));
+
+  // Broadcast speaking state to other users
+  const lastSpeakingState = useRef(false);
+  useEffect(() => {
+    const currentSpeaking = pushToTalk ? isPttActive : (!isMuted && isSpeaking);
+
+    // Only emit when state changes to avoid flooding
+    if (currentSpeaking !== lastSpeakingState.current) {
+      lastSpeakingState.current = currentSpeaking;
+      if (socket) {
+        socket.emit('speaking-state', { isSpeaking: currentSpeaking });
+      }
+    }
+  }, [socket, isSpeaking, isMuted, pushToTalk, isPttActive]);
 
   /**
    * Handle mute toggle
@@ -288,7 +309,7 @@ function Room({ socket, roomData, onLeave, onKicked, onError }) {
       socketId,
       name: peerData.name,
       isMuted: peerData.isMuted,
-      isSpeaking: false, // We'd need remote VAD for this
+      isSpeaking: peerData.isSpeaking || false,
       isHost: peerData.isHost,
       isLocal: false,
       connected: peerData.connected,

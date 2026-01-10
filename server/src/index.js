@@ -216,6 +216,20 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Speaking state changed (for visual indicator)
+  socket.on('speaking-state', (data) => {
+    const { isSpeaking } = data;
+    const roomId = socket.roomId;
+
+    if (!roomId) return;
+
+    // Broadcast speaking state to other users in room (not to self)
+    socket.to(roomId).emit('user-speaking-changed', {
+      socketId: socket.id,
+      isSpeaking,
+    });
+  });
+
   // Kick user (host only)
   socket.on('kick-user', (data, callback) => {
     const { targetSocketId } = data;

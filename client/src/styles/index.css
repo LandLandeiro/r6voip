@@ -148,9 +148,9 @@
     );
   }
 
-  /* Speaking indicator glow */
+  /* Speaking indicator glow - uses filter instead of box-shadow to work with clip-path */
   .speaking {
-    @apply animate-speaking-glow;
+    @apply animate-speaking-glow-filter;
     border-color: #4DE94C !important;
   }
 

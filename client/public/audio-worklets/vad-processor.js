@@ -13,8 +13,8 @@ class VADProcessor extends AudioWorkletProcessor {
 
     // Parameters
     this.threshold = -35; // dB - base threshold
-    this.hysteresis = 3; // dB - hysteresis range
-    this.smoothingFactor = 0.95; // Temporal smoothing
+    this.hysteresis = 4; // dB - hysteresis range (increased for better noise rejection)
+    this.smoothingFactor = 0.85; // Temporal smoothing (reduced for faster response)
 
     // State
     this.smoothedLevel = -100;
