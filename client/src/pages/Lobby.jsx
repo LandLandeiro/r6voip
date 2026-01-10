@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react';
+import { useLanguage, availableLanguages } from '../context/LanguageContext';
 
 function Lobby({ socket, onJoinRoom, onError }) {
+  const { t, language, changeLanguage } = useLanguage();
   const [operatorName, setOperatorName] = useState('');
   const [roomCode, setRoomCode] = useState('');
   const [isCreating, setIsCreating] = useState(false);
@@ -12,14 +14,14 @@ function Lobby({ socket, onJoinRoom, onError }) {
   };
 
   const handleRoomCodeChange = (e) => {
-    // Only allow digits, max 4 characters
-    const value = e.target.value.replace(/\D/g, '').slice(0, 4);
+    // Allow letters and digits, max 4 characters
+    const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
     setRoomCode(value);
   };
 
   const handleCreateRoom = useCallback(async () => {
     if (!socket || !operatorName.trim()) {
-      onError('Please enter your operator name');
+      onError(t('enterOperatorName'));
       return;
     }
 
@@ -40,16 +42,16 @@ function Lobby({ socket, onJoinRoom, onError }) {
         myName: operatorName.trim(),
       });
     });
-  }, [socket, operatorName, onJoinRoom, onError]);
+  }, [socket, operatorName, onJoinRoom, onError, t]);
 
   const handleJoinRoom = useCallback(async () => {
     if (!socket || !operatorName.trim()) {
-      onError('Please enter your operator name');
+      onError(t('enterOperatorName'));
       return;
     }
 
     if (!roomCode.trim() || roomCode.length !== 4) {
-      onError('Please enter a valid 4-digit room code');
+      onError(t('enterValidCode'));
       return;
     }
 
@@ -71,26 +73,41 @@ function Lobby({ socket, onJoinRoom, onError }) {
         myName: operatorName.trim(),
       });
     });
-  }, [socket, operatorName, roomCode, onJoinRoom, onError]);
+  }, [socket, operatorName, roomCode, onJoinRoom, onError, t]);
 
   const isNameValid = operatorName.trim().length > 0;
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Logo */}
+        {/* Header - No logo, just title */}
         <div className="text-center mb-8">
-          <img
-            src="/logo.svg"
-            alt="r6voip"
-            className="w-48 h-auto mx-auto mb-4"
-          />
           <h1 className="font-display text-4xl font-bold tracking-wider text-accent-action text-glow-orange">
-            r6voip
+            R6voip
           </h1>
           <p className="text-text-secondary mt-2 font-display tracking-wide">
-            TACTICAL VOICE COMMUNICATIONS
+            {t('tacticalComms')}
           </p>
+        </div>
+
+        {/* Language Selector */}
+        <div className="flex justify-center mb-6">
+          <div className="inline-flex items-center gap-2 bg-tactical-surface border border-tactical-border px-3 py-2">
+            <span className="text-xs text-text-muted font-display uppercase tracking-wider">
+              {t('language')}:
+            </span>
+            <select
+              value={language}
+              onChange={(e) => changeLanguage(e.target.value)}
+              className="bg-transparent text-text-primary text-sm font-display focus:outline-none cursor-pointer"
+            >
+              {availableLanguages.map((lang) => (
+                <option key={lang.code} value={lang.code} className="bg-tactical-base">
+                  {lang.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Main Card */}
@@ -98,39 +115,54 @@ function Lobby({ socket, onJoinRoom, onError }) {
           {/* Operator Name Input */}
           <div className="space-y-2">
             <label className="block text-sm font-display uppercase tracking-wider text-text-secondary">
-              Operator Callsign
+              {t('operatorCallsign')}
             </label>
             <input
               type="text"
               value={operatorName}
               onChange={handleNameChange}
-              placeholder="Enter your callsign..."
+              placeholder={t('enterCallsign')}
               maxLength={16}
               className="input-tactical"
               autoComplete="off"
             />
             <p className="text-xs text-text-muted">
-              {operatorName.length}/16 characters
+              {operatorName.length}/16 {t('characters')}
             </p>
           </div>
 
-          {/* Create Room Section */}
+          {/* Join Room Section - NOW FIRST */}
           <div className="space-y-3">
+            <div className="space-y-2">
+              <label className="block text-sm font-display uppercase tracking-wider text-text-secondary">
+                {t('roomCode')}
+              </label>
+              <input
+                type="text"
+                value={roomCode}
+                onChange={handleRoomCodeChange}
+                placeholder={t('roomCodePlaceholder')}
+                maxLength={4}
+                className="input-tactical font-mono text-3xl text-center tracking-[0.5em] py-4 uppercase"
+                autoComplete="off"
+              />
+            </div>
+
             <button
-              onClick={handleCreateRoom}
-              disabled={!isNameValid || isCreating || isJoining}
+              onClick={handleJoinRoom}
+              disabled={!isNameValid || roomCode.length !== 4 || isCreating || isJoining}
               className="btn-tactical w-full text-lg py-4"
             >
-              {isCreating ? (
+              {isJoining ? (
                 <span className="flex items-center justify-center gap-2">
                   <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
-                  DEPLOYING...
+                  {t('connecting')}
                 </span>
               ) : (
-                'START OPERATION'
+                t('joinFrequency')
               )}
             </button>
           </div>
@@ -142,45 +174,28 @@ function Lobby({ socket, onJoinRoom, onError }) {
             </div>
             <div className="relative flex justify-center">
               <span className="bg-tactical-surface px-4 text-sm text-text-muted font-display tracking-wider">
-                OR
+                {t('or')}
               </span>
             </div>
           </div>
 
-          {/* Join Room Section */}
+          {/* Create Room Section - NOW SECOND */}
           <div className="space-y-3">
-            <div className="space-y-2">
-              <label className="block text-sm font-display uppercase tracking-wider text-text-secondary">
-                Room Code (4 digits)
-              </label>
-              <input
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                value={roomCode}
-                onChange={handleRoomCodeChange}
-                placeholder="1234"
-                maxLength={4}
-                className="input-tactical font-mono text-3xl text-center tracking-[0.5em] py-4"
-                autoComplete="off"
-              />
-            </div>
-
             <button
-              onClick={handleJoinRoom}
-              disabled={!isNameValid || roomCode.length !== 4 || isCreating || isJoining}
+              onClick={handleCreateRoom}
+              disabled={!isNameValid || isCreating || isJoining}
               className="btn-tactical-secondary w-full"
             >
-              {isJoining ? (
+              {isCreating ? (
                 <span className="flex items-center justify-center gap-2">
                   <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
-                  CONNECTING...
+                  {t('deploying')}
                 </span>
               ) : (
-                'JOIN FREQUENCY'
+                t('startOperation')
               )}
             </button>
           </div>
@@ -189,9 +204,7 @@ function Lobby({ socket, onJoinRoom, onError }) {
         {/* Privacy Notice */}
         <div className="mt-6 p-4 bg-tactical-surface/50 border border-tactical-border/50 text-center">
           <p className="text-xs text-text-muted leading-relaxed">
-            <span className="text-status-warning">P2P Connection:</span> Audio flows directly between users.
-            Your IP address may be visible to other participants.
-            No accounts required. Rooms expire after 24 hours.
+            <span className="text-status-warning">{t('p2pConnection')}</span> {t('p2pNotice')}
           </p>
         </div>
 
@@ -203,7 +216,7 @@ function Lobby({ socket, onJoinRoom, onError }) {
                 socket?.connected ? 'bg-status-online animate-pulse' : 'bg-status-alert'
               }`}
             />
-            {socket?.connected ? 'Connected to server' : 'Connecting...'}
+            {socket?.connected ? t('connectedToServer') : t('connectingToServer')}
           </div>
         </div>
       </div>

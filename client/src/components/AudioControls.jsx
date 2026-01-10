@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useLanguage } from '../context/LanguageContext';
 
 function AudioControls({
   isMuted,
@@ -9,23 +10,49 @@ function AudioControls({
   onThresholdChange,
   onLeave,
   connectionStatus,
+  pushToTalk,
+  onPushToTalkChange,
+  pttKey,
+  onPttKeyChange,
+  isPttActive,
 }) {
+  const { t } = useLanguage();
   const [showSettings, setShowSettings] = useState(false);
+  const [isCapturingKey, setIsCapturingKey] = useState(false);
 
   // Calculate level bar width (map from dB to percentage)
   const levelPercent = Math.max(0, Math.min(100, ((audioLevel + 60) / 60) * 100));
+
+  // Handle key capture for PTT
+  const handleKeyCapture = useCallback((e) => {
+    if (!isCapturingKey) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const keyName = e.key === ' ' ? 'Space' : e.key;
+    onPttKeyChange(keyName);
+    setIsCapturingKey(false);
+  }, [isCapturingKey, onPttKeyChange]);
+
+  useEffect(() => {
+    if (isCapturingKey) {
+      window.addEventListener('keydown', handleKeyCapture);
+      return () => window.removeEventListener('keydown', handleKeyCapture);
+    }
+  }, [isCapturingKey, handleKeyCapture]);
 
   return (
     <div className="flex flex-col gap-4">
       {/* Audio level meter */}
       <div className="flex items-center gap-4">
         <span className="text-xs text-text-muted font-display uppercase tracking-wider w-16">
-          Level
+          {t('level')}
         </span>
         <div className="flex-1 h-2 bg-tactical-elevated rounded-full overflow-hidden">
           <div
             className={`h-full transition-all duration-75 ${
-              isSpeaking && !isMuted ? 'bg-status-online' : 'bg-text-muted'
+              (isSpeaking || isPttActive) && !isMuted ? 'bg-status-online' : 'bg-text-muted'
             }`}
             style={{ width: `${isMuted ? 0 : levelPercent}%` }}
           />
@@ -34,6 +61,15 @@ function AudioControls({
           {isMuted ? '--' : `${audioLevel.toFixed(0)} dB`}
         </span>
       </div>
+
+      {/* PTT indicator */}
+      {pushToTalk && (
+        <div className={`text-center text-xs font-display uppercase tracking-wider transition-colors ${
+          isPttActive ? 'text-status-online' : 'text-text-muted'
+        }`}>
+          {isPttActive ? `[${pttKey}] ${t('pttEnabled')}` : `${t('holdToTalk')} [${pttKey}]`}
+        </div>
+      )}
 
       {/* Main controls */}
       <div className="flex items-center justify-between gap-4">
@@ -50,10 +86,10 @@ function AudioControls({
           />
           <span className="text-xs text-text-muted font-display uppercase tracking-wider">
             {connectionStatus === 'connected'
-              ? 'P2P Active'
+              ? t('p2pActive')
               : connectionStatus === 'error'
-              ? 'Connection Error'
-              : 'Connecting...'}
+              ? t('connectionError')
+              : t('connecting')}
           </span>
         </div>
 
@@ -81,7 +117,7 @@ function AudioControls({
             className={`p-4 rounded-xl transition-all ${
               isMuted
                 ? 'bg-status-alert text-white'
-                : isSpeaking
+                : (isSpeaking || isPttActive)
                 ? 'bg-status-online text-tactical-base animate-pulse'
                 : 'bg-tactical-surface hover:bg-tactical-elevated text-text-primary'
             }`}
@@ -109,7 +145,7 @@ function AudioControls({
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
               </svg>
-              <span className="hidden sm:inline">LEAVE</span>
+              <span className="hidden sm:inline">{t('leave')}</span>
             </span>
           </button>
         </div>
@@ -122,33 +158,77 @@ function AudioControls({
       {showSettings && (
         <div className="card-tactical p-4 mt-2 animate-fade-in">
           <h4 className="text-sm font-display uppercase tracking-wider text-text-secondary mb-4">
-            Audio Settings
+            {t('audioSettings')}
           </h4>
 
-          {/* Threshold slider */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs text-text-muted">
-              <span>Voice Detection Sensitivity</span>
-              <span className="font-mono">{threshold} dB</span>
+          {/* Push to Talk toggle */}
+          <div className="mb-4 pb-4 border-b border-tactical-border">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-text-muted">{t('pushToTalk')}</span>
+              <button
+                onClick={() => onPushToTalkChange(!pushToTalk)}
+                className={`relative w-12 h-6 rounded-full transition-colors ${
+                  pushToTalk ? 'bg-status-online' : 'bg-tactical-elevated'
+                }`}
+              >
+                <span
+                  className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                    pushToTalk ? 'left-7' : 'left-1'
+                  }`}
+                />
+              </button>
             </div>
-            <input
-              type="range"
-              min="-60"
-              max="-20"
-              value={threshold}
-              onChange={(e) => onThresholdChange(Number(e.target.value))}
-              className="w-full h-2 bg-tactical-elevated rounded-lg appearance-none cursor-pointer accent-accent-action"
-            />
-            <div className="flex justify-between text-xs text-text-muted">
-              <span>More Sensitive</span>
-              <span>Less Sensitive</span>
-            </div>
+            <p className="text-xs text-text-muted">
+              {pushToTalk ? t('pttEnabled') : t('pttDisabled')}
+            </p>
+
+            {/* PTT Key selector */}
+            {pushToTalk && (
+              <div className="mt-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-text-muted">{t('pttKey')}:</span>
+                  <button
+                    onClick={() => setIsCapturingKey(true)}
+                    className={`px-3 py-1 text-sm font-mono border transition-colors ${
+                      isCapturingKey
+                        ? 'border-accent-action bg-accent-action/20 text-accent-action animate-pulse'
+                        : 'border-tactical-border bg-tactical-elevated text-text-primary hover:border-accent-action'
+                    }`}
+                  >
+                    {isCapturingKey ? t('pressKey') : pttKey}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
-          <p className="mt-4 text-xs text-text-muted">
-            Adjust the threshold to control when your voice is detected.
-            Lower values mean more sensitivity (may pick up background noise).
-          </p>
+          {/* Threshold slider - only show when NOT using PTT */}
+          {!pushToTalk && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs text-text-muted">
+                <span>{t('voiceDetection')}</span>
+                <span className="font-mono">{threshold} dB</span>
+              </div>
+              <input
+                type="range"
+                min="-60"
+                max="-20"
+                value={threshold}
+                onChange={(e) => onThresholdChange(Number(e.target.value))}
+                className="w-full h-2 bg-tactical-elevated rounded-lg appearance-none cursor-pointer accent-accent-action"
+              />
+              <div className="flex justify-between text-xs text-text-muted">
+                <span>{t('moreSensitive')}</span>
+                <span>{t('lessSensitive')}</span>
+              </div>
+            </div>
+          )}
+
+          {!pushToTalk && (
+            <p className="mt-4 text-xs text-text-muted">
+              {t('adjustThreshold')}
+            </p>
+          )}
         </div>
       )}
     </div>

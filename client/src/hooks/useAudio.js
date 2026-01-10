@@ -154,6 +154,21 @@ export function useAudio() {
   }, [isMuted]);
 
   /**
+   * Set mute state directly (for PTT)
+   */
+  const setMuted = useCallback((muted) => {
+    if (streamRef.current) {
+      streamRef.current.getAudioTracks().forEach((track) => {
+        track.enabled = !muted;
+      });
+      setIsMuted(muted);
+      if (muted) {
+        setIsSpeaking(false);
+      }
+    }
+  }, []);
+
+  /**
    * Get processed audio stream for WebRTC
    */
   const getProcessedStream = useCallback(() => {
@@ -201,6 +216,7 @@ export function useAudio() {
     // Actions
     initAudio,
     toggleMute,
+    setMuted,
     updateParams,
     getProcessedStream,
     getRawStream,

@@ -2,15 +2,27 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSocketEvent } from '../hooks/useSocket';
 import { useAudio } from '../hooks/useAudio';
 import { usePeerConnections } from '../hooks/usePeerConnections';
+import { useLanguage } from '../context/LanguageContext';
 import UserCard from '../components/UserCard';
 import AudioControls from '../components/AudioControls';
 import RoomHeader from '../components/RoomHeader';
 
 function Room({ socket, roomData, onLeave, onKicked, onError }) {
+  const { t } = useLanguage();
   const [isHost, setIsHost] = useState(roomData?.isHost || false);
   const [users, setUsers] = useState(new Map());
   const [isInitializing, setIsInitializing] = useState(true);
   const hasInitialized = useRef(false);
+
+  // Push-to-Talk state
+  const [pushToTalk, setPushToTalk] = useState(() => {
+    const saved = localStorage.getItem('r6voip-ptt');
+    return saved === 'true';
+  });
+  const [pttKey, setPttKey] = useState(() => {
+    return localStorage.getItem('r6voip-ptt-key') || 'Space';
+  });
+  const [isPttActive, setIsPttActive] = useState(false);
 
   // Audio management
   const {
@@ -27,6 +39,7 @@ function Room({ socket, roomData, onLeave, onKicked, onError }) {
     getProcessedStream,
     getRawStream,
     cleanup: cleanupAudio,
+    setMuted,
   } = useAudio();
 
   // Get the stream to use
@@ -44,6 +57,51 @@ function Room({ socket, roomData, onLeave, onKicked, onError }) {
     removePeer,
     cleanup: cleanupPeers,
   } = usePeerConnections(socket, localStream, roomData?.roomId);
+
+  // Handle Push-to-Talk
+  const handlePushToTalkChange = useCallback((enabled) => {
+    setPushToTalk(enabled);
+    localStorage.setItem('r6voip-ptt', enabled.toString());
+  }, []);
+
+  const handlePttKeyChange = useCallback((key) => {
+    setPttKey(key);
+    localStorage.setItem('r6voip-ptt-key', key);
+  }, []);
+
+  // PTT key listeners
+  useEffect(() => {
+    if (!pushToTalk || !audioInitialized) return;
+
+    const handleKeyDown = (e) => {
+      const keyName = e.key === ' ' ? 'Space' : e.key;
+      if (keyName === pttKey && !isPttActive) {
+        e.preventDefault();
+        setIsPttActive(true);
+        if (setMuted) setMuted(false);
+      }
+    };
+
+    const handleKeyUp = (e) => {
+      const keyName = e.key === ' ' ? 'Space' : e.key;
+      if (keyName === pttKey) {
+        e.preventDefault();
+        setIsPttActive(false);
+        if (setMuted) setMuted(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    // Start muted when PTT is enabled
+    if (setMuted) setMuted(true);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [pushToTalk, pttKey, isPttActive, audioInitialized, setMuted]);
 
   /**
    * Initialize audio and peer connection
@@ -196,8 +254,8 @@ function Room({ socket, roomData, onLeave, onKicked, onError }) {
   userList.push({
     socketId: socket?.id,
     name: roomData?.myName || 'You',
-    isMuted,
-    isSpeaking: !isMuted && isSpeaking,
+    isMuted: pushToTalk ? !isPttActive : isMuted,
+    isSpeaking: pushToTalk ? isPttActive : (!isMuted && isSpeaking),
     isHost,
     isLocal: true,
     connected: audioInitialized,
@@ -234,11 +292,11 @@ function Room({ socket, roomData, onLeave, onKicked, onError }) {
               <div className="text-center space-y-4">
                 <div className="w-16 h-16 border-4 border-accent-action border-t-transparent rounded-full animate-spin mx-auto" />
                 <p className="text-text-primary font-display text-lg tracking-wider">
-                  ESTABLISHING SECURE CHANNEL...
+                  {t('establishingChannel')}
                 </p>
                 {micPermission === 'prompt' && (
                   <p className="text-text-secondary text-sm">
-                    Please allow microphone access when prompted
+                    {t('allowMicrophone')}
                   </p>
                 )}
               </div>
@@ -249,7 +307,7 @@ function Room({ socket, roomData, onLeave, onKicked, onError }) {
           {micPermission === 'denied' && (
             <div className="mb-6 p-4 bg-status-alert/20 border border-status-alert text-center">
               <p className="text-status-alert font-medium">
-                Microphone access denied. Please enable microphone permissions in your browser settings.
+                {t('microphoneDenied')}
               </p>
             </div>
           )}
@@ -276,7 +334,7 @@ function Room({ socket, roomData, onLeave, onKicked, onError }) {
                     <svg className="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                     </svg>
-                    <span className="text-xs uppercase tracking-wider">Awaiting Operator</span>
+                    <span className="text-xs uppercase tracking-wider">{t('awaitingOperator')}</span>
                   </div>
                 </div>
               </div>
@@ -289,7 +347,7 @@ function Room({ socket, roomData, onLeave, onKicked, onError }) {
       <footer className="sticky bottom-0 bg-tactical-base/95 backdrop-blur border-t border-tactical-border p-4">
         <div className="max-w-5xl mx-auto">
           <AudioControls
-            isMuted={isMuted}
+            isMuted={pushToTalk ? !isPttActive : isMuted}
             isSpeaking={isSpeaking}
             audioLevel={audioLevel}
             threshold={threshold}
@@ -297,6 +355,11 @@ function Room({ socket, roomData, onLeave, onKicked, onError }) {
             onThresholdChange={(value) => updateParams({ threshold: value })}
             onLeave={handleLeave}
             connectionStatus={connectionStatus}
+            pushToTalk={pushToTalk}
+            onPushToTalkChange={handlePushToTalkChange}
+            pttKey={pttKey}
+            onPttKeyChange={handlePttKeyChange}
+            isPttActive={isPttActive}
           />
         </div>
       </footer>
