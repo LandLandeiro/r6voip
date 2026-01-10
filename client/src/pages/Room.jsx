@@ -45,8 +45,11 @@ function Room({ socket, roomData, onLeave, onKicked, onError }) {
     setMuted,
   } = useAudio();
 
-  // Get the stream to use
-  const localStream = getProcessedStream() || getRawStream();
+  // Get the stream to use for WebRTC transmission
+  // IMPORTANT: Use raw stream for transmission (with browser's built-in noise suppression)
+  // The processed stream goes through noise gate which silences audio when not speaking
+  // This was causing users to not hear each other
+  const localStream = getRawStream();
 
   // Peer connections
   const {
