@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 160">
+  <defs>
+    <linearGradient id="waveGreen" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" style="stop-color:#4DE94C;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4DE94C;stop-opacity:0" />
+    </linearGradient>
+    <linearGradient id="waveOrange" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" style="stop-color:#FF8C00;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FF8C00;stop-opacity:0" />
+    </linearGradient>
+    <linearGradient id="stoneGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3d3d3d" />
+      <stop offset="50%" style="stop-color:#2a2a2a" />
+      <stop offset="100%" style="stop-color:#1a1a1a" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Stone wall base -->
+  <path d="M10 20 L60 10 L70 25 L90 15 L100 30 L90 130 L70 140 L50 125 L30 140 L10 130 Z"
+        fill="url(#stoneGrad)" stroke="#4DE94C" stroke-width="2"/>
+
+  <!-- Cracks in stone -->
+  <path d="M30 30 L45 60 L35 90 L50 120" stroke="#1a1a1a" stroke-width="2" fill="none"/>
+  <path d="M60 25 L70 50 L65 80" stroke="#1a1a1a" stroke-width="2" fill="none"/>
+  <path d="M50 70 L75 75 L70 100" stroke="#1a1a1a" stroke-width="2" fill="none"/>
+
+  <!-- Audio waves - Green -->
+  <g filter="url(#glow)">
+    <path d="M95 60 Q130 60 130 80 Q130 100 95 100" stroke="url(#waveGreen)" stroke-width="3" fill="none"/>
+    <path d="M100 50 Q150 50 150 80 Q150 110 100 110" stroke="url(#waveGreen)" stroke-width="2" fill="none"/>
+    <path d="M105 40 Q170 40 170 80 Q170 120 105 120" stroke="url(#waveGreen)" stroke-width="1.5" fill="none" opacity="0.7"/>
+  </g>
+
+  <!-- Audio waves - Orange -->
+  <g filter="url(#glow)">
+    <path d="M95 70 Q120 55 145 70" stroke="url(#waveOrange)" stroke-width="2" fill="none"/>
+    <path d="M95 90 Q120 105 145 90" stroke="url(#waveOrange)" stroke-width="2" fill="none"/>
+    <path d="M100 80 Q140 65 180 80" stroke="url(#waveOrange)" stroke-width="1.5" fill="none" opacity="0.8"/>
+  </g>
+
+  <!-- Signal bars -->
+  <rect x="110" y="65" width="4" height="30" fill="#4DE94C" opacity="0.9"/>
+  <rect x="118" y="55" width="4" height="50" fill="#4DE94C" opacity="0.8"/>
+  <rect x="126" y="60" width="4" height="40" fill="#4DE94C" opacity="0.7"/>
+
+  <!-- Accent lines -->
+  <line x1="90" y1="80" x2="190" y2="80" stroke="#4DE94C" stroke-width="1" opacity="0.3"/>
+  <line x1="95" y1="70" x2="185" y2="70" stroke="#FF8C00" stroke-width="0.5" opacity="0.4"/>
+  <line x1="95" y1="90" x2="185" y2="90" stroke="#FF8C00" stroke-width="0.5" opacity="0.4"/>
+</svg>
