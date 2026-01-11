@@ -38,6 +38,9 @@ const translations = {
     leave: 'LEAVE',
     micVolume: 'Microphone Volume',
     playerVolume: 'Player Volume',
+    voiceActivation: 'Voice Activation',
+    voiceActivationOn: 'Audio only transmits when speaking',
+    voiceActivationOff: 'Audio always transmits when unmuted',
     // Room
     tacticalChannel: 'Tactical Channel',
     room: 'Room',
@@ -90,6 +93,9 @@ const translations = {
     leave: 'SAIR',
     micVolume: 'Volume do Microfone',
     playerVolume: 'Volume do Jogador',
+    voiceActivation: 'Ativação por Voz',
+    voiceActivationOn: 'Áudio só transmite quando falando',
+    voiceActivationOff: 'Áudio sempre transmite quando desmutado',
     // Room
     tacticalChannel: 'Canal Tático',
     room: 'Sala',
@@ -142,6 +148,9 @@ const translations = {
     leave: 'SALIR',
     micVolume: 'Volumen del Micrófono',
     playerVolume: 'Volumen del Jugador',
+    voiceActivation: 'Activación por Voz',
+    voiceActivationOn: 'El audio solo se transmite cuando hablas',
+    voiceActivationOff: 'El audio siempre se transmite cuando no está silenciado',
     // Room
     tacticalChannel: 'Canal Táctico',
     room: 'Sala',

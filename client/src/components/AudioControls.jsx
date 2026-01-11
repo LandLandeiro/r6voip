@@ -7,9 +7,11 @@ function AudioControls({
   audioLevel,
   threshold,
   micVolume,
+  voiceActivation,
   onMicVolumeChange,
   onToggleMute,
   onThresholdChange,
+  onVoiceActivationChange,
   onLeave,
   connectionStatus,
   pushToTalk,
@@ -44,7 +46,7 @@ function AudioControls({
     }
   }, [isCapturingKey, handleKeyCapture]);
 
-  const micVolumePercent = Math.round((micVolume || 1) * 100);
+  const micVolumePercent = Math.round((micVolume ?? 1) * 100);
 
   return (
     <div className="flex flex-col gap-4">
@@ -176,7 +178,7 @@ function AudioControls({
               min="0"
               max="2"
               step="0.05"
-              value={micVolume || 1}
+              value={micVolume ?? 1}
               onChange={(e) => onMicVolumeChange(parseFloat(e.target.value))}
               className="w-full h-2 bg-tactical-elevated rounded-lg appearance-none cursor-pointer accent-accent-action"
             />
@@ -227,8 +229,34 @@ function AudioControls({
             )}
           </div>
 
-          {/* Threshold slider - only show when NOT using PTT */}
+          {/* Voice Activation toggle - only show when NOT using PTT */}
           {!pushToTalk && (
+            <div className="mb-4 pb-4 border-b border-tactical-border">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-text-muted">{t('voiceActivation') || 'Voice Activation'}</span>
+                <button
+                  onClick={() => onVoiceActivationChange(!voiceActivation)}
+                  className={`relative w-12 h-6 rounded-full transition-colors ${
+                    voiceActivation ? 'bg-status-online' : 'bg-tactical-elevated'
+                  }`}
+                >
+                  <span
+                    className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                      voiceActivation ? 'left-7' : 'left-1'
+                    }`}
+                  />
+                </button>
+              </div>
+              <p className="text-xs text-text-muted">
+                {voiceActivation
+                  ? (t('voiceActivationOn') || 'Audio only transmits when speaking')
+                  : (t('voiceActivationOff') || 'Audio always transmits when unmuted')}
+              </p>
+            </div>
+          )}
+
+          {/* Threshold slider - only show when voice activation is ON and NOT using PTT */}
+          {!pushToTalk && voiceActivation && (
             <div className="space-y-2">
               <div className="flex justify-between text-xs text-text-muted">
                 <span>{t('voiceDetection')}</span>
@@ -246,13 +274,10 @@ function AudioControls({
                 <span>{t('moreSensitive')}</span>
                 <span>{t('lessSensitive')}</span>
               </div>
+              <p className="mt-2 text-xs text-text-muted">
+                {t('adjustThreshold') || 'Adjust to filter background noise'}
+              </p>
             </div>
-          )}
-
-          {!pushToTalk && (
-            <p className="mt-4 text-xs text-text-muted">
-              {t('adjustThreshold')}
-            </p>
           )}
         </div>
       )}
