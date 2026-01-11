@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Base styles */
+/* Base styles - Liquid Metal Theme */
 @layer base {
   * {
     box-sizing: border-box;
@@ -14,184 +14,395 @@
 
   body {
     min-height: 100vh;
-    background-color: #0D0D0D;
-    color: #F2F2F2;
-    font-family: 'Inter', system-ui, sans-serif;
+    background: radial-gradient(ellipse at 30% 20%, #3F3F46 0%, #27272A 30%, #18181B 60%, #09090B 100%);
+    color: #FAFAFA;
+    font-family: 'Exo 2', system-ui, sans-serif;
   }
 
-  /* Custom scrollbar */
+  /* Custom scrollbar - Chrome aesthetic */
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
 
   ::-webkit-scrollbar-track {
-    background: #1a1a1a;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: #404040;
+    background: linear-gradient(180deg, #18181B 0%, #27272A 100%);
     border-radius: 4px;
   }
 
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #71717A 0%, #52525B 50%, #3F3F46 100%);
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
   ::-webkit-scrollbar-thumb:hover {
-    background: #555;
+    background: linear-gradient(180deg, #A1A1AA 0%, #71717A 50%, #52525B 100%);
+  }
+
+  /* Selection styling */
+  ::selection {
+    background: rgba(204, 255, 0, 0.3);
+    color: #FAFAFA;
   }
 }
 
-/* Component styles */
+/* Component styles - Liquid Metal */
 @layer components {
-  /* Corner cut clip path for tactical look */
-  .clip-corner {
-    clip-path: polygon(
-      0 0,
-      calc(100% - 12px) 0,
-      100% 12px,
-      100% 100%,
-      12px 100%,
-      0 calc(100% - 12px)
-    );
-  }
-
-  .clip-corner-sm {
-    clip-path: polygon(
-      0 0,
-      calc(100% - 8px) 0,
-      100% 8px,
-      100% 100%,
-      8px 100%,
-      0 calc(100% - 8px)
-    );
-  }
-
-  /* Tactical button */
-  .btn-tactical {
-    @apply relative px-6 py-3 font-display font-semibold uppercase tracking-wider;
-    @apply bg-accent-action text-tactical-base;
-    @apply transition-all duration-200;
-    @apply hover:bg-accent-action-hover hover:scale-105;
+  /* Mercury Button - Primary action */
+  .btn-mercury {
+    @apply relative px-8 py-3 font-display font-semibold uppercase tracking-widest;
+    @apply text-mercury-900 rounded-full overflow-hidden;
+    @apply transition-all duration-300 ease-out;
+    @apply hover:scale-105 hover:shadow-chrome-lg;
     @apply active:scale-95;
     @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
-    clip-path: polygon(
-      0 0,
-      calc(100% - 8px) 0,
-      100% 8px,
-      100% 100%,
-      8px 100%,
-      0 calc(100% - 8px)
-    );
+    background: linear-gradient(135deg, #FAFAFA 0%, #D4D4D8 25%, #A1A1AA 50%, #D4D4D8 75%, #FAFAFA 100%);
+    background-size: 200% 200%;
+    box-shadow:
+      0 4px 20px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.2);
   }
 
-  .btn-tactical-secondary {
-    @apply relative px-6 py-3 font-display font-semibold uppercase tracking-wider;
-    @apply bg-tactical-surface text-text-primary border border-tactical-border;
-    @apply transition-all duration-200;
-    @apply hover:bg-tactical-elevated hover:border-accent-action;
-    @apply active:scale-95;
-    clip-path: polygon(
-      0 0,
-      calc(100% - 8px) 0,
-      100% 8px,
-      100% 100%,
-      8px 100%,
-      0 calc(100% - 8px)
-    );
-  }
-
-  .btn-danger {
-    @apply relative px-6 py-3 font-display font-semibold uppercase tracking-wider;
-    @apply bg-status-alert text-white;
-    @apply transition-all duration-200;
-    @apply hover:brightness-110 hover:scale-105;
-    @apply active:scale-95;
-    clip-path: polygon(
-      0 0,
-      calc(100% - 8px) 0,
-      100% 8px,
-      100% 100%,
-      8px 100%,
-      0 calc(100% - 8px)
-    );
-  }
-
-  /* Input field */
-  .input-tactical {
-    @apply w-full px-4 py-3 bg-tactical-surface border border-tactical-border;
-    @apply text-text-primary placeholder-text-muted;
-    @apply focus:outline-none focus:border-accent-action focus:ring-1 focus:ring-accent-action;
-    @apply transition-all duration-200;
-    clip-path: polygon(
-      0 0,
-      calc(100% - 8px) 0,
-      100% 8px,
-      100% 100%,
-      8px 100%,
-      0 calc(100% - 8px)
-    );
-  }
-
-  .input-tactical-mono {
-    @apply input-tactical font-mono text-lg tracking-widest uppercase;
-  }
-
-  /* Card with tactical styling */
-  .card-tactical {
-    @apply bg-tactical-surface border border-tactical-border p-4;
-    @apply transition-all duration-300;
-    clip-path: polygon(
-      0 0,
-      calc(100% - 12px) 0,
-      100% 12px,
-      100% 100%,
-      12px 100%,
-      0 calc(100% - 12px)
-    );
-  }
-
-  /* Speaking indicator glow - uses filter instead of box-shadow to work with clip-path */
-  .speaking {
-    @apply animate-speaking-glow-filter;
-    border-color: #4DE94C !important;
-  }
-
-  /* HUD scan line effect */
-  .hud-scanline::before {
+  .btn-mercury::before {
     content: '';
-    @apply absolute inset-0 pointer-events-none overflow-hidden;
+    @apply absolute inset-0 opacity-0 transition-opacity duration-300;
+    background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%);
+  }
+
+  .btn-mercury:hover::before {
+    @apply opacity-100;
+    animation: chrome-shimmer 1.5s ease-in-out;
+  }
+
+  /* Glass Button - Secondary action */
+  .btn-glass {
+    @apply relative px-8 py-3 font-display font-semibold uppercase tracking-widest;
+    @apply text-mercury-100 rounded-full overflow-hidden;
+    @apply border border-white/30 backdrop-blur-md;
+    @apply transition-all duration-300 ease-out;
+    @apply hover:border-white/50 hover:bg-white/10;
+    @apply active:scale-95;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow:
+      0 4px 20px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+
+  .btn-glass:hover {
+    box-shadow:
+      0 8px 30px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3),
+      0 0 20px rgba(255, 255, 255, 0.1);
+  }
+
+  /* Danger Button - Alert/Delete actions */
+  .btn-danger {
+    @apply relative px-6 py-3 font-display font-semibold uppercase tracking-widest;
+    @apply text-white rounded-full overflow-hidden;
+    @apply transition-all duration-300 ease-out;
+    @apply hover:scale-105;
+    @apply active:scale-95;
+    background: linear-gradient(135deg, #FF3366 0%, #FF1744 50%, #D50000 100%);
+    box-shadow:
+      0 4px 20px rgba(255, 51, 102, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+
+  .btn-danger:hover {
+    box-shadow:
+      0 0 30px rgba(255, 51, 102, 0.6),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  }
+
+  /* Input field - Chrome inset style */
+  .input-chrome {
+    @apply w-full px-5 py-3 rounded-2xl font-body;
+    @apply text-mercury-100 placeholder-mercury-500;
+    @apply border border-white/20 backdrop-blur-sm;
+    @apply focus:outline-none focus:border-accent-acid/50 focus:ring-2 focus:ring-accent-acid/20;
+    @apply transition-all duration-300;
+    background: rgba(0, 0, 0, 0.3);
+    box-shadow:
+      inset 0 2px 10px rgba(0, 0, 0, 0.4),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  .input-chrome:focus {
+    background: rgba(0, 0, 0, 0.4);
+    box-shadow:
+      inset 0 2px 10px rgba(0, 0, 0, 0.5),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.15),
+      0 0 20px rgba(204, 255, 0, 0.1);
+  }
+
+  .input-chrome-mono {
+    @apply input-chrome font-mono text-lg tracking-widest uppercase text-center;
+  }
+
+  /* Card - Glass/Metal hybrid */
+  .card-chrome {
+    @apply relative p-5 rounded-3xl overflow-hidden;
+    @apply border border-white/20 backdrop-blur-xl;
+    @apply transition-all duration-500;
     background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.1) 0%,
+      rgba(255, 255, 255, 0.05) 50%,
+      rgba(0, 0, 0, 0.1) 100%
+    );
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+  }
+
+  .card-chrome::before {
+    content: '';
+    @apply absolute top-0 left-0 right-0 h-px;
+    background: linear-gradient(
+      90deg,
       transparent 0%,
-      rgba(255, 140, 0, 0.03) 50%,
+      rgba(255, 255, 255, 0.5) 50%,
       transparent 100%
     );
-    animation: scan-line 4s linear infinite;
   }
 
-  /* Room code display */
+  /* Card reflection glint effect */
+  .card-chrome::after {
+    content: '';
+    @apply absolute top-0 -left-full w-1/2 h-full pointer-events-none;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.1) 50%,
+      transparent 100%
+    );
+    transform: skewX(-25deg);
+  }
+
+  .card-chrome:hover::after {
+    animation: glint 0.8s ease-out forwards;
+  }
+
+  /* Speaking state - Acid glow animation */
+  .speaking {
+    @apply animate-speaking-chrome;
+    border-color: rgba(204, 255, 0, 0.6) !important;
+  }
+
+  .speaking::before {
+    content: '';
+    @apply absolute inset-0 rounded-3xl pointer-events-none;
+    background: radial-gradient(ellipse at center, rgba(204, 255, 0, 0.15) 0%, transparent 70%);
+  }
+
+  /* Room code display - Metallic text */
   .room-code {
-    @apply font-mono text-2xl tracking-[0.3em] text-accent-highlight;
-    text-shadow: 0 0 10px rgba(255, 238, 0, 0.5);
+    @apply font-display text-3xl tracking-[0.4em] font-bold;
+    background: linear-gradient(180deg, #FAFAFA 0%, #A1A1AA 50%, #D4D4D8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+  }
+
+  /* Metallic text effect */
+  .text-chrome {
+    background: linear-gradient(180deg, #FAFAFA 0%, #D4D4D8 40%, #A1A1AA 60%, #D4D4D8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+  }
+
+  /* Large chrome title */
+  .text-chrome-title {
+    @apply font-display font-bold tracking-widest uppercase;
+    background: linear-gradient(
+      135deg,
+      #FAFAFA 0%,
+      #D4D4D8 20%,
+      #FAFAFA 40%,
+      #A1A1AA 60%,
+      #D4D4D8 80%,
+      #FAFAFA 100%
+    );
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+    animation: chrome-shimmer 4s ease-in-out infinite;
+  }
+
+  /* Mercury blob avatar */
+  .mercury-blob {
+    @apply relative w-20 h-20 flex items-center justify-center;
+    background: linear-gradient(135deg, #FAFAFA 0%, #D4D4D8 25%, #A1A1AA 50%, #71717A 75%, #52525B 100%);
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+    box-shadow:
+      0 10px 40px rgba(0, 0, 0, 0.5),
+      inset 0 -5px 20px rgba(0, 0, 0, 0.3),
+      inset 0 5px 10px rgba(255, 255, 255, 0.5);
+    animation: mercury-blob 6s ease-in-out infinite;
+  }
+
+  .mercury-blob::before {
+    content: '';
+    @apply absolute top-2 left-3 w-4 h-2 rounded-full;
+    background: rgba(255, 255, 255, 0.7);
+    filter: blur(2px);
+  }
+
+  /* Status badge - Chrome pill */
+  .badge-chrome {
+    @apply px-3 py-1 font-display text-xs font-bold uppercase tracking-wider rounded-full;
+    @apply text-mercury-900;
+    background: linear-gradient(135deg, #FAFAFA 0%, #D4D4D8 50%, #A1A1AA 100%);
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  }
+
+  /* Acid badge for active states */
+  .badge-acid {
+    @apply px-3 py-1 font-display text-xs font-bold uppercase tracking-wider rounded-full;
+    @apply text-mercury-900;
+    background: linear-gradient(135deg, #CCFF00 0%, #B8FF00 50%, #99CC00 100%);
+    box-shadow:
+      0 2px 8px rgba(204, 255, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  }
+
+  /* Divider - Chrome line */
+  .divider-chrome {
+    @apply relative h-px w-full my-6;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.3) 20%,
+      rgba(255, 255, 255, 0.5) 50%,
+      rgba(255, 255, 255, 0.3) 80%,
+      transparent 100%
+    );
+  }
+
+  .divider-chrome::before {
+    content: '';
+    @apply absolute inset-0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(0, 0, 0, 0.3) 50%,
+      transparent 100%
+    );
+    transform: translateY(1px);
   }
 }
 
-/* Utility classes */
+/* Utility classes - Liquid Metal */
 @layer utilities {
-  .text-glow-orange {
-    text-shadow: 0 0 10px rgba(255, 140, 0, 0.5);
+  /* Glow effects */
+  .glow-acid {
+    box-shadow: 0 0 20px rgba(204, 255, 0, 0.5), 0 0 40px rgba(204, 255, 0, 0.3);
   }
 
-  .text-glow-green {
-    text-shadow: 0 0 10px rgba(77, 233, 76, 0.5);
+  .glow-acid-sm {
+    box-shadow: 0 0 10px rgba(204, 255, 0, 0.4), 0 0 20px rgba(204, 255, 0, 0.2);
   }
 
-  .text-glow-yellow {
-    text-shadow: 0 0 10px rgba(255, 238, 0, 0.5);
+  .glow-cyan {
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.5), 0 0 40px rgba(0, 255, 255, 0.3);
   }
 
-  .border-glow-green {
-    box-shadow: 0 0 10px rgba(77, 233, 76, 0.3), inset 0 0 10px rgba(77, 233, 76, 0.1);
+  .glow-chrome {
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.3), 0 0 40px rgba(255, 255, 255, 0.1);
   }
 
-  .border-glow-orange {
-    box-shadow: 0 0 10px rgba(255, 140, 0, 0.3), inset 0 0 10px rgba(255, 140, 0, 0.1);
+  /* Text shadows */
+  .text-glow-acid {
+    text-shadow: 0 0 10px rgba(204, 255, 0, 0.5), 0 0 20px rgba(204, 255, 0, 0.3);
+  }
+
+  .text-glow-cyan {
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5), 0 0 20px rgba(0, 255, 255, 0.3);
+  }
+
+  .text-glow-white {
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5), 0 0 20px rgba(255, 255, 255, 0.3);
+  }
+
+  /* Backdrop effects */
+  .glass-blur {
+    @apply backdrop-blur-xl;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .glass-blur-heavy {
+    @apply backdrop-blur-2xl;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  /* Border reflection */
+  .border-reflection {
+    @apply border border-white/30;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+
+  /* Chrome volume slider */
+  .slider-chrome {
+    @apply w-full h-2 rounded-full appearance-none cursor-pointer;
+    background: linear-gradient(90deg, #27272A 0%, #3F3F46 50%, #27272A 100%);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+  }
+
+  .slider-chrome::-webkit-slider-thumb {
+    @apply appearance-none w-4 h-4 rounded-full cursor-pointer;
+    background: linear-gradient(135deg, #FAFAFA 0%, #D4D4D8 50%, #A1A1AA 100%);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    transition: transform 0.2s ease;
+  }
+
+  .slider-chrome::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+  }
+
+  .slider-chrome::-moz-range-thumb {
+    @apply w-4 h-4 rounded-full cursor-pointer border-none;
+    background: linear-gradient(135deg, #FAFAFA 0%, #D4D4D8 50%, #A1A1AA 100%);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Pulse ring for connection status */
+  .pulse-ring-acid {
+    @apply absolute rounded-full;
+    animation: acid-ripple 1.5s ease-out infinite;
+    border: 2px solid rgba(204, 255, 0, 0.6);
+  }
+}
+
+/* Keyframe for glint animation */
+@keyframes glint {
+  0% {
+    left: -50%;
+  }
+  100% {
+    left: 150%;
+  }
+}
+
+/* Keyframe for chrome text shimmer */
+@keyframes chrome-shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
   }
 }

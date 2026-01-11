@@ -80,29 +80,29 @@ function Lobby({ socket, onJoinRoom, onError }) {
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Header - No logo, just title */}
-        <div className="text-center mb-8">
-          <h1 className="font-display text-4xl font-bold tracking-wider text-accent-action text-glow-orange">
+        {/* Header - Chrome title */}
+        <div className="text-center mb-10">
+          <h1 className="text-chrome-title text-5xl mb-3">
             R6voip
           </h1>
-          <p className="text-text-secondary mt-2 font-display tracking-wide">
+          <p className="text-mercury-400 font-body tracking-wide">
             {t('tacticalComms')}
           </p>
         </div>
 
-        {/* Language Selector */}
-        <div className="flex justify-center mb-6">
-          <div className="inline-flex items-center gap-2 bg-tactical-surface border border-tactical-border px-3 py-2">
-            <span className="text-xs text-text-muted font-display uppercase tracking-wider">
+        {/* Language Selector - Glass pill */}
+        <div className="flex justify-center mb-8">
+          <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full border border-white/20 backdrop-blur-md bg-white/5">
+            <span className="text-xs text-mercury-400 font-display uppercase tracking-wider">
               {t('language')}:
             </span>
             <select
               value={language}
               onChange={(e) => changeLanguage(e.target.value)}
-              className="bg-transparent text-text-primary text-sm font-display focus:outline-none cursor-pointer"
+              className="bg-transparent text-mercury-100 text-sm font-body focus:outline-none cursor-pointer"
             >
               {availableLanguages.map((lang) => (
-                <option key={lang.code} value={lang.code} className="bg-tactical-base">
+                <option key={lang.code} value={lang.code} className="bg-mercury-900">
                   {lang.name}
                 </option>
               ))}
@@ -110,11 +110,11 @@ function Lobby({ socket, onJoinRoom, onError }) {
           </div>
         </div>
 
-        {/* Main Card */}
-        <div className="card-tactical p-6 space-y-6">
+        {/* Main Card - Glass/Chrome hybrid */}
+        <div className="card-chrome p-8 space-y-6">
           {/* Operator Name Input */}
-          <div className="space-y-2">
-            <label className="block text-sm font-display uppercase tracking-wider text-text-secondary">
+          <div className="space-y-3">
+            <label className="block text-sm font-display uppercase tracking-widest text-mercury-300">
               {t('operatorCallsign')}
             </label>
             <input
@@ -123,18 +123,18 @@ function Lobby({ socket, onJoinRoom, onError }) {
               onChange={handleNameChange}
               placeholder={t('enterCallsign')}
               maxLength={16}
-              className="input-tactical"
+              className="input-chrome"
               autoComplete="off"
             />
-            <p className="text-xs text-text-muted">
+            <p className="text-xs text-mercury-500 font-mono">
               {operatorName.length}/16 {t('characters')}
             </p>
           </div>
 
-          {/* Join Room Section - NOW FIRST */}
-          <div className="space-y-3">
-            <div className="space-y-2">
-              <label className="block text-sm font-display uppercase tracking-wider text-text-secondary">
+          {/* Join Room Section */}
+          <div className="space-y-4">
+            <div className="space-y-3">
+              <label className="block text-sm font-display uppercase tracking-widest text-mercury-300">
                 {t('roomCode')}
               </label>
               <input
@@ -143,7 +143,7 @@ function Lobby({ socket, onJoinRoom, onError }) {
                 onChange={handleRoomCodeChange}
                 placeholder={t('roomCodePlaceholder')}
                 maxLength={4}
-                className="input-tactical font-mono text-3xl text-center tracking-[0.5em] py-4 uppercase"
+                className="input-chrome font-mono text-3xl text-center tracking-[0.5em] py-5 uppercase"
                 autoComplete="off"
               />
             </div>
@@ -151,10 +151,10 @@ function Lobby({ socket, onJoinRoom, onError }) {
             <button
               onClick={handleJoinRoom}
               disabled={!isNameValid || roomCode.length !== 4 || isCreating || isJoining}
-              className="btn-tactical w-full text-lg py-4"
+              className="btn-mercury w-full text-base py-4"
             >
               {isJoining ? (
-                <span className="flex items-center justify-center gap-2">
+                <span className="flex items-center justify-center gap-3">
                   <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -167,27 +167,24 @@ function Lobby({ socket, onJoinRoom, onError }) {
             </button>
           </div>
 
-          {/* Divider */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-tactical-border" />
-            </div>
-            <div className="relative flex justify-center">
-              <span className="bg-tactical-surface px-4 text-sm text-text-muted font-display tracking-wider">
+          {/* Divider - Chrome line */}
+          <div className="divider-chrome">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="px-4 text-sm text-mercury-500 font-display tracking-wider bg-transparent">
                 {t('or')}
               </span>
             </div>
           </div>
 
-          {/* Create Room Section - NOW SECOND */}
+          {/* Create Room Section */}
           <div className="space-y-3">
             <button
               onClick={handleCreateRoom}
               disabled={!isNameValid || isCreating || isJoining}
-              className="btn-tactical-secondary w-full"
+              className="btn-glass w-full"
             >
               {isCreating ? (
-                <span className="flex items-center justify-center gap-2">
+                <span className="flex items-center justify-center gap-3">
                   <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -201,20 +198,24 @@ function Lobby({ socket, onJoinRoom, onError }) {
           </div>
         </div>
 
-        {/* Privacy Notice */}
-        <div className="mt-6 p-4 bg-tactical-surface/50 border border-tactical-border/50 text-center">
-          <p className="text-xs text-text-muted leading-relaxed">
-            <span className="text-status-warning">{t('p2pConnection')}</span> {t('p2pNotice')}
+        {/* Privacy Notice - Glass card */}
+        <div className="mt-6 p-4 rounded-2xl border border-white/10 backdrop-blur-md bg-white/5 text-center">
+          <p className="text-xs text-mercury-400 leading-relaxed font-body">
+            <span className="text-accent-acid font-medium">{t('p2pConnection')}</span> {t('p2pNotice')}
           </p>
         </div>
 
         {/* Connection Status */}
-        <div className="mt-4 text-center">
-          <div className="inline-flex items-center gap-2 text-xs text-text-muted">
+        <div className="mt-5 text-center">
+          <div className="inline-flex items-center gap-2 text-xs text-mercury-500 font-body">
             <span
-              className={`w-2 h-2 rounded-full ${
-                socket?.connected ? 'bg-status-online animate-pulse' : 'bg-status-alert'
-              }`}
+              className={`
+                w-2 h-2 rounded-full transition-all duration-300
+                ${socket?.connected
+                  ? 'bg-status-online shadow-[0_0_8px_rgba(0,255,136,0.6)]'
+                  : 'bg-status-alert shadow-[0_0_8px_rgba(255,51,102,0.6)] animate-pulse'
+                }
+              `}
             />
             {socket?.connected ? t('connectedToServer') : t('connectingToServer')}
           </div>

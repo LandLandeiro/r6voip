@@ -361,16 +361,26 @@ function Room({ socket, roomData, onLeave, onKicked, onError }) {
       {/* Main content */}
       <main className="flex-1 p-4 md:p-8">
         <div className="max-w-5xl mx-auto">
-          {/* Initialization overlay */}
+          {/* Initialization overlay - Glass style */}
           {isInitializing && (
-            <div className="fixed inset-0 bg-tactical-base/90 z-50 flex items-center justify-center">
-              <div className="text-center space-y-4">
-                <div className="w-16 h-16 border-4 border-accent-action border-t-transparent rounded-full animate-spin mx-auto" />
-                <p className="text-text-primary font-display text-lg tracking-wider">
+            <div className="fixed inset-0 bg-mercury-950/95 backdrop-blur-xl z-50 flex items-center justify-center">
+              <div className="text-center space-y-6">
+                {/* Chrome spinner */}
+                <div className="relative w-20 h-20 mx-auto">
+                  <div
+                    className="w-full h-full rounded-full animate-spin"
+                    style={{
+                      background: 'conic-gradient(from 0deg, transparent 0%, #D4D4D8 50%, transparent 100%)',
+                      WebkitMask: 'radial-gradient(farthest-side, transparent calc(100% - 4px), black calc(100% - 4px))',
+                      mask: 'radial-gradient(farthest-side, transparent calc(100% - 4px), black calc(100% - 4px))',
+                    }}
+                  />
+                </div>
+                <p className="text-mercury-100 font-display text-lg tracking-widest uppercase">
                   {t('establishingChannel')}
                 </p>
                 {micPermission === 'prompt' && (
-                  <p className="text-text-secondary text-sm">
+                  <p className="text-mercury-400 text-sm font-body">
                     {t('allowMicrophone')}
                   </p>
                 )}
@@ -380,8 +390,12 @@ function Room({ socket, roomData, onLeave, onKicked, onError }) {
 
           {/* Microphone permission denied */}
           {micPermission === 'denied' && (
-            <div className="mb-6 p-4 bg-status-alert/20 border border-status-alert text-center">
-              <p className="text-status-alert font-medium">
+            <div className="mb-6 p-4 rounded-2xl border border-status-alert/50 backdrop-blur-md text-center"
+              style={{
+                background: 'linear-gradient(135deg, rgba(255, 51, 102, 0.1) 0%, rgba(255, 51, 102, 0.05) 100%)',
+              }}
+            >
+              <p className="text-status-alert font-medium font-display">
                 {t('microphoneDenied')}
               </p>
             </div>
@@ -399,18 +413,18 @@ function Room({ socket, roomData, onLeave, onKicked, onError }) {
               />
             ))}
 
-            {/* Empty slots */}
+            {/* Empty slots - Glass style */}
             {Array.from({ length: 5 - userList.length }).map((_, i) => (
               <div
                 key={`empty-${i}`}
-                className="card-tactical p-4 opacity-30 border-dashed"
+                className="card-chrome p-4 opacity-40 border-dashed border-white/10"
               >
                 <div className="aspect-square flex items-center justify-center">
-                  <div className="text-center text-text-muted">
+                  <div className="text-center text-mercury-500">
                     <svg className="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                     </svg>
-                    <span className="text-xs uppercase tracking-wider">{t('awaitingOperator')}</span>
+                    <span className="text-xs font-display uppercase tracking-wider">{t('awaitingOperator')}</span>
                   </div>
                 </div>
               </div>
@@ -419,8 +433,12 @@ function Room({ socket, roomData, onLeave, onKicked, onError }) {
         </div>
       </main>
 
-      {/* Bottom controls */}
-      <footer className="sticky bottom-0 bg-tactical-base/95 backdrop-blur border-t border-tactical-border p-4">
+      {/* Bottom controls - Glass footer */}
+      <footer className="sticky bottom-0 backdrop-blur-xl border-t border-white/10 p-4"
+        style={{
+          background: 'linear-gradient(180deg, rgba(24, 24, 27, 0.9) 0%, rgba(24, 24, 27, 0.95) 100%)',
+        }}
+      >
         <div className="max-w-5xl mx-auto">
           <AudioControls
             isMuted={pushToTalk ? !isPttActive : isMuted}
