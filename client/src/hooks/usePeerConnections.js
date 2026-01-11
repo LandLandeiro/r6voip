@@ -33,21 +33,25 @@ export function usePeerConnections(socket, localStream, roomId) {
 
   /**
    * Update peer volume
+   * Uses user name as key for localStorage to persist across reconnections
    */
   const updatePeerVolume = useCallback((socketId, volume) => {
     setPeers((prev) => {
       const updated = new Map(prev);
       const peerData = updated.get(socketId);
       if (peerData) {
-        // Update audio element volume
+        // Update audio element volume immediately
         if (peerData.audio) {
           peerData.audio.volume = Math.max(0, Math.min(1, volume));
         }
         updated.set(socketId, { ...peerData, volume });
 
-        // Save to localStorage
+        // Save to localStorage using user name as key (more stable than socketId)
         const volumeSettings = JSON.parse(localStorage.getItem('r6voip-peer-volumes') || '{}');
-        volumeSettings[socketId] = volume;
+        if (peerData.name) {
+          volumeSettings[peerData.name] = volume;
+        }
+        volumeSettings[socketId] = volume; // Also save by socketId for current session
         localStorage.setItem('r6voip-peer-volumes', JSON.stringify(volumeSettings));
       }
       return updated;
@@ -115,16 +119,26 @@ export function usePeerConnections(socket, localStream, roomId) {
         for (const [socketId, peerData] of updated) {
           if (peerData.peerId === remotePeerId) {
             // Load saved volume from localStorage
+            // Try by name first (more stable), then by socketId
             const volumeSettings = JSON.parse(localStorage.getItem('r6voip-peer-volumes') || '{}');
-            const savedVolume = volumeSettings[socketId] !== undefined ? volumeSettings[socketId] : 1.0;
-            audio.volume = savedVolume;
+            let savedVolume = 1.0;
+            if (peerData.name && volumeSettings[peerData.name] !== undefined) {
+              savedVolume = volumeSettings[peerData.name];
+            } else if (volumeSettings[socketId] !== undefined) {
+              savedVolume = volumeSettings[socketId];
+            }
+
+            // Only apply saved volume if peer doesn't already have a volume set
+            // This preserves volume changes made during the current session
+            const finalVolume = peerData.volume !== undefined ? peerData.volume : savedVolume;
+            audio.volume = finalVolume;
 
             updated.set(socketId, {
               ...peerData,
               stream: remoteStream,
               audio,
               connected: true,
-              volume: savedVolume,
+              volume: finalVolume,
             });
             break;
           }
@@ -337,9 +351,14 @@ export function usePeerConnections(socket, localStream, roomId) {
    * Add a peer to track (before we have their peerId)
    */
   const addPeer = useCallback((socketId, userData) => {
-    // Load saved volume
+    // Load saved volume - try by name first (more stable), then by socketId
     const volumeSettings = JSON.parse(localStorage.getItem('r6voip-peer-volumes') || '{}');
-    const savedVolume = volumeSettings[socketId] !== undefined ? volumeSettings[socketId] : 1.0;
+    let savedVolume = 1.0;
+    if (userData.name && volumeSettings[userData.name] !== undefined) {
+      savedVolume = volumeSettings[userData.name];
+    } else if (volumeSettings[socketId] !== undefined) {
+      savedVolume = volumeSettings[socketId];
+    }
 
     setPeers((prev) => {
       const updated = new Map(prev);

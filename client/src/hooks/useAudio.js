@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
  */
 export function useAudio() {
   const [isInitialized, setIsInitialized] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMutedState] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [audioLevel, setAudioLevel] = useState(-100);
   const [error, setError] = useState(null);
@@ -13,6 +13,12 @@ export function useAudio() {
   const [micVolume, setMicVolume] = useState(() => {
     const saved = localStorage.getItem('r6voip-mic-volume');
     return saved ? parseFloat(saved) : 1.0;
+  });
+
+  // Voice Activation Detection mode - when true, audio is gated by VAD
+  const [voiceActivation, setVoiceActivation] = useState(() => {
+    const saved = localStorage.getItem('r6voip-voice-activation');
+    return saved !== 'false'; // Default to true
   });
 
   const audioContextRef = useRef(null);
@@ -24,8 +30,22 @@ export function useAudio() {
   const outputNodeRef = useRef(null);
   const processedStreamRef = useRef(null);
 
+  // Refs for voice activation gating (will be synced with state on init)
+  const isMutedRef = useRef(false);
+  const voiceActivationRef = useRef(voiceActivation);
+  const vadSpeakingRef = useRef(false);
+  const pttModeRef = useRef(false); // When true, VAD gating is bypassed
+
+  // Sync voiceActivation state with ref when it changes
+  useEffect(() => {
+    voiceActivationRef.current = voiceActivation;
+  }, [voiceActivation]);
+
   // Audio parameters
-  const [threshold, setThreshold] = useState(-40);
+  const [threshold, setThreshold] = useState(() => {
+    const saved = localStorage.getItem('r6voip-threshold');
+    return saved ? parseFloat(saved) : -40;
+  });
   const [attackTime, setAttackTime] = useState(0.01);
   const [releaseTime, setReleaseTime] = useState(0.2);
 
@@ -92,12 +112,29 @@ export function useAudio() {
 
       // Noise gate is still created but not connected - can be used in future if needed
 
-      // Listen for VAD messages
+      // Listen for VAD messages and gate audio based on voice detection
       vad.port.onmessage = (event) => {
         const { type, data } = event.data;
         if (type === 'vadState') {
           setIsSpeaking(data.isSpeaking);
           setAudioLevel(data.level);
+          vadSpeakingRef.current = data.isSpeaking;
+
+          // Gate audio transmission based on VAD when voice activation is enabled
+          // Only gate if not manually muted AND not in PTT mode
+          if (voiceActivationRef.current && !isMutedRef.current && !pttModeRef.current) {
+            // Enable tracks only when speaking
+            if (streamRef.current) {
+              streamRef.current.getAudioTracks().forEach((track) => {
+                track.enabled = data.isSpeaking;
+              });
+            }
+            if (processedStreamRef.current) {
+              processedStreamRef.current.getAudioTracks().forEach((track) => {
+                track.enabled = data.isSpeaking;
+              });
+            }
+          }
         }
       };
 
@@ -133,9 +170,31 @@ export function useAudio() {
    * Update audio parameters
    */
   const updateParams = useCallback((params) => {
-    if (params.threshold !== undefined) setThreshold(params.threshold);
+    if (params.threshold !== undefined) {
+      setThreshold(params.threshold);
+      localStorage.setItem('r6voip-threshold', params.threshold.toString());
+    }
     if (params.attackTime !== undefined) setAttackTime(params.attackTime);
     if (params.releaseTime !== undefined) setReleaseTime(params.releaseTime);
+    if (params.voiceActivation !== undefined) {
+      setVoiceActivation(params.voiceActivation);
+      voiceActivationRef.current = params.voiceActivation;
+      localStorage.setItem('r6voip-voice-activation', params.voiceActivation.toString());
+
+      // When disabling voice activation, enable tracks if not muted
+      if (!params.voiceActivation && !isMutedRef.current) {
+        if (streamRef.current) {
+          streamRef.current.getAudioTracks().forEach((track) => {
+            track.enabled = true;
+          });
+        }
+        if (processedStreamRef.current) {
+          processedStreamRef.current.getAudioTracks().forEach((track) => {
+            track.enabled = true;
+          });
+        }
+      }
+    }
 
     if (noiseGateRef.current) {
       noiseGateRef.current.port.postMessage({
@@ -170,20 +229,31 @@ export function useAudio() {
    */
   const toggleMute = useCallback(() => {
     const newMuted = !isMuted;
+    isMutedRef.current = newMuted;
 
-    // Mute both raw and processed streams for WebRTC transmission
+    // When muting, disable tracks; when unmuting, let VAD control if voice activation is on
     if (streamRef.current) {
       streamRef.current.getAudioTracks().forEach((track) => {
-        track.enabled = !newMuted;
+        if (newMuted) {
+          track.enabled = false;
+        } else if (!voiceActivationRef.current) {
+          // Only enable immediately if voice activation is off
+          track.enabled = true;
+        }
+        // If voice activation is on and unmuting, VAD will control the track
       });
     }
     if (processedStreamRef.current) {
       processedStreamRef.current.getAudioTracks().forEach((track) => {
-        track.enabled = !newMuted;
+        if (newMuted) {
+          track.enabled = false;
+        } else if (!voiceActivationRef.current) {
+          track.enabled = true;
+        }
       });
     }
 
-    setIsMuted(newMuted);
+    setIsMutedState(newMuted);
     if (newMuted) {
       setIsSpeaking(false);
     }
@@ -194,7 +264,9 @@ export function useAudio() {
    * Set mute state directly (for PTT)
    */
   const setMuted = useCallback((muted) => {
-    // Mute both raw and processed streams for WebRTC transmission
+    isMutedRef.current = muted;
+
+    // When muting, disable tracks; when unmuting in PTT mode, enable immediately
     if (streamRef.current) {
       streamRef.current.getAudioTracks().forEach((track) => {
         track.enabled = !muted;
@@ -206,10 +278,17 @@ export function useAudio() {
       });
     }
 
-    setIsMuted(muted);
+    setIsMutedState(muted);
     if (muted) {
       setIsSpeaking(false);
     }
+  }, []);
+
+  /**
+   * Set PTT mode - bypasses VAD gating when enabled
+   */
+  const setPttMode = useCallback((enabled) => {
+    pttModeRef.current = enabled;
   }, []);
 
   /**
@@ -254,6 +333,7 @@ export function useAudio() {
     error,
     micPermission,
     micVolume,
+    voiceActivation,
     // Parameters
     threshold,
     attackTime,
@@ -262,6 +342,7 @@ export function useAudio() {
     initAudio,
     toggleMute,
     setMuted,
+    setPttMode,
     updateParams,
     updateMicVolume,
     getProcessedStream,

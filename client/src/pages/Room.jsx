@@ -35,6 +35,7 @@ function Room({ socket, roomData, onLeave, onKicked, onError }) {
     micPermission,
     threshold,
     micVolume,
+    voiceActivation,
     initAudio,
     toggleMute,
     updateParams,
@@ -43,6 +44,7 @@ function Room({ socket, roomData, onLeave, onKicked, onError }) {
     getRawStream,
     cleanup: cleanupAudio,
     setMuted,
+    setPttMode,
   } = useAudio();
 
   // Get the stream to use for WebRTC transmission
@@ -70,12 +72,17 @@ function Room({ socket, roomData, onLeave, onKicked, onError }) {
     setPushToTalk(enabled);
     localStorage.setItem('r6voip-ptt', enabled.toString());
 
+    // Set PTT mode in audio hook to bypass VAD gating
+    if (setPttMode) {
+      setPttMode(enabled);
+    }
+
     // When enabling PTT, start muted
     if (enabled && setMuted) {
       setMuted(true);
       setIsPttActive(false);
     }
-  }, [setMuted]);
+  }, [setMuted, setPttMode]);
 
   const handlePttKeyChange = useCallback((key) => {
     setPttKey(key);
@@ -90,6 +97,7 @@ function Room({ socket, roomData, onLeave, onKicked, onError }) {
     if (!pttInitialized.current) {
       pttInitialized.current = true;
       if (setMuted) setMuted(true);
+      if (setPttMode) setPttMode(true); // Enable PTT mode in audio hook
     }
 
     const handleKeyDown = (e) => {
@@ -117,14 +125,15 @@ function Room({ socket, roomData, onLeave, onKicked, onError }) {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [pushToTalk, pttKey, audioInitialized, setMuted]);
+  }, [pushToTalk, pttKey, audioInitialized, setMuted, setPttMode]);
 
   // Reset PTT initialized flag when PTT is disabled
   useEffect(() => {
     if (!pushToTalk) {
       pttInitialized.current = false;
+      if (setPttMode) setPttMode(false); // Disable PTT mode in audio hook
     }
-  }, [pushToTalk]);
+  }, [pushToTalk, setPttMode]);
 
   /**
    * Initialize audio and peer connection
@@ -261,13 +270,38 @@ function Room({ socket, roomData, onLeave, onKicked, onError }) {
 
   /**
    * Handle mute toggle
+   * In PTT mode, clicking unmute disables PTT and keeps mic always on
+   * Clicking mute re-enables PTT mode
    */
   const handleToggleMute = useCallback(() => {
-    const newMuted = toggleMute();
-    if (socket) {
-      socket.emit('toggle-mute', { isMuted: newMuted });
+    if (pushToTalk) {
+      // In PTT mode: clicking unmute button means "disable PTT and stay unmuted"
+      const currentlyMuted = !isPttActive; // In PTT: muted when key not pressed
+      if (currentlyMuted) {
+        // User wants to unmute - disable PTT mode and unmute
+        setPushToTalk(false);
+        localStorage.setItem('r6voip-ptt', 'false');
+        pttInitialized.current = false;
+        setMuted(false);
+        if (socket) {
+          socket.emit('toggle-mute', { isMuted: false });
+        }
+      } else {
+        // User wants to mute while PTT key is pressed - just release PTT behavior
+        setIsPttActive(false);
+        setMuted(true);
+        if (socket) {
+          socket.emit('toggle-mute', { isMuted: true });
+        }
+      }
+    } else {
+      // Normal mode: toggle mute as usual
+      const newMuted = toggleMute();
+      if (socket) {
+        socket.emit('toggle-mute', { isMuted: newMuted });
+      }
     }
-  }, [socket, toggleMute]);
+  }, [socket, toggleMute, pushToTalk, isPttActive, setMuted]);
 
   /**
    * Handle kick user
@@ -399,9 +433,11 @@ function Room({ socket, roomData, onLeave, onKicked, onError }) {
             audioLevel={audioLevel}
             threshold={threshold}
             micVolume={micVolume}
+            voiceActivation={voiceActivation}
             onMicVolumeChange={updateMicVolume}
             onToggleMute={handleToggleMute}
             onThresholdChange={(value) => updateParams({ threshold: value })}
+            onVoiceActivationChange={(value) => updateParams({ voiceActivation: value })}
             onLeave={handleLeave}
             connectionStatus={connectionStatus}
             pushToTalk={pushToTalk}

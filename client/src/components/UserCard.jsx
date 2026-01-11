@@ -22,8 +22,8 @@ function UserCard({ user, isLocalHost, onKick, onVolumeChange }) {
     onVolumeChange(value);
   };
 
-  // Format volume for display
-  const volumePercent = Math.round((user.volume || 1) * 100);
+  // Format volume for display (use nullish coalescing to allow 0 volume)
+  const volumePercent = Math.round((user.volume ?? 1) * 100);
 
   return (
     <div
@@ -144,7 +144,7 @@ function UserCard({ user, isLocalHost, onKick, onVolumeChange }) {
                   min="0"
                   max="1"
                   step="0.05"
-                  value={user.volume || 1}
+                  value={user.volume ?? 1}
                   onChange={handleVolumeChange}
                   className="w-full h-2 bg-tactical-elevated rounded-lg appearance-none cursor-pointer accent-accent-action"
                 />
