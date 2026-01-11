@@ -36,22 +36,17 @@ function Room({ socket, roomData, onLeave, onKicked, onError }) {
     threshold,
     micVolume,
     voiceActivation,
+    // Use rawStream directly (reactive state) instead of getRawStream()
+    // This ensures the component re-renders when the stream becomes available
+    rawStream: localStream,
     initAudio,
     toggleMute,
     updateParams,
     updateMicVolume,
-    getProcessedStream,
-    getRawStream,
     cleanup: cleanupAudio,
     setMuted,
     setPttMode,
   } = useAudio();
-
-  // Get the stream to use for WebRTC transmission
-  // IMPORTANT: Use raw stream for transmission (with browser's built-in noise suppression)
-  // The processed stream goes through noise gate which silences audio when not speaking
-  // This was causing users to not hear each other
-  const localStream = getRawStream();
 
   // Peer connections
   const {
