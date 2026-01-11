@@ -50,28 +50,39 @@ function AudioControls({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Audio level meter */}
+      {/* Audio level meter - Chrome style */}
       <div className="flex items-center gap-4">
-        <span className="text-xs text-text-muted font-display uppercase tracking-wider w-16">
+        <span className="text-xs text-mercury-500 font-display uppercase tracking-wider w-16">
           {t('level')}
         </span>
-        <div className="flex-1 h-2 bg-tactical-elevated rounded-full overflow-hidden">
+        <div className="flex-1 h-2 rounded-full overflow-hidden"
+          style={{
+            background: 'linear-gradient(90deg, rgba(39, 39, 42, 0.8) 0%, rgba(63, 63, 70, 0.8) 50%, rgba(39, 39, 42, 0.8) 100%)',
+            boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.5)',
+          }}
+        >
           <div
-            className={`h-full transition-all duration-75 ${
-              (isSpeaking || isPttActive) && !isMuted ? 'bg-status-online' : 'bg-text-muted'
-            }`}
-            style={{ width: `${isMuted ? 0 : levelPercent}%` }}
+            className="h-full transition-all duration-75 rounded-full"
+            style={{
+              width: `${isMuted ? 0 : levelPercent}%`,
+              background: (isSpeaking || isPttActive) && !isMuted
+                ? 'linear-gradient(90deg, #CCFF00 0%, #B8FF00 50%, #CCFF00 100%)'
+                : 'linear-gradient(90deg, #71717A 0%, #A1A1AA 50%, #71717A 100%)',
+              boxShadow: (isSpeaking || isPttActive) && !isMuted
+                ? '0 0 10px rgba(204, 255, 0, 0.5)'
+                : 'none',
+            }}
           />
         </div>
-        <span className="text-xs text-text-muted font-mono w-16 text-right">
+        <span className="text-xs text-mercury-500 font-mono w-16 text-right">
           {isMuted ? '--' : `${audioLevel.toFixed(0)} dB`}
         </span>
       </div>
 
       {/* PTT indicator */}
       {pushToTalk && (
-        <div className={`text-center text-xs font-display uppercase tracking-wider transition-colors ${
-          isPttActive ? 'text-status-online' : 'text-text-muted'
+        <div className={`text-center text-xs font-display uppercase tracking-wider transition-all duration-200 ${
+          isPttActive ? 'text-accent-acid text-glow-acid' : 'text-mercury-500'
         }`}>
           {isPttActive ? `[${pttKey}] ${t('pttEnabled')}` : `${t('holdToTalk')} [${pttKey}]`}
         </div>
@@ -82,15 +93,15 @@ function AudioControls({
         {/* Left side - connection status */}
         <div className="flex items-center gap-2">
           <div
-            className={`w-2 h-2 rounded-full ${
+            className={`w-2 h-2 rounded-full transition-all duration-300 ${
               connectionStatus === 'connected'
-                ? 'bg-status-online'
+                ? 'bg-status-online shadow-[0_0_8px_rgba(0,255,136,0.6)]'
                 : connectionStatus === 'error'
-                ? 'bg-status-alert'
-                : 'bg-status-warning animate-pulse'
+                ? 'bg-status-alert shadow-[0_0_8px_rgba(255,51,102,0.6)]'
+                : 'bg-status-warning shadow-[0_0_8px_rgba(255,170,0,0.6)] animate-pulse'
             }`}
           />
-          <span className="text-xs text-text-muted font-display uppercase tracking-wider">
+          <span className="text-xs text-mercury-500 font-display uppercase tracking-wider">
             {connectionStatus === 'connected'
               ? t('p2pActive')
               : connectionStatus === 'error'
@@ -101,14 +112,16 @@ function AudioControls({
 
         {/* Center - main buttons */}
         <div className="flex items-center gap-3">
-          {/* Settings button */}
+          {/* Settings button - Glass style */}
           <button
             onClick={() => setShowSettings(!showSettings)}
-            className={`p-3 rounded-lg transition-all ${
-              showSettings
-                ? 'bg-accent-action text-tactical-base'
-                : 'bg-tactical-surface hover:bg-tactical-elevated text-text-primary'
-            }`}
+            className={`
+              p-3 rounded-xl transition-all duration-300 border backdrop-blur-sm
+              ${showSettings
+                ? 'bg-white/20 border-white/40 text-mercury-100 shadow-chrome'
+                : 'bg-white/5 border-white/10 text-mercury-400 hover:bg-white/10 hover:border-white/20'
+              }
+            `}
             title="Audio Settings"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -117,25 +130,34 @@ function AudioControls({
             </svg>
           </button>
 
-          {/* Mute button */}
+          {/* Mute button - Mercury blob style */}
           <button
             onClick={onToggleMute}
-            className={`p-4 rounded-xl transition-all ${
-              isMuted
-                ? 'bg-status-alert text-white'
+            className={`
+              relative p-4 rounded-full transition-all duration-300
+              ${isMuted
+                ? 'bg-gradient-to-br from-status-alert to-red-700 text-white shadow-[0_0_20px_rgba(255,51,102,0.4)]'
                 : (isSpeaking || isPttActive)
-                ? 'bg-status-online text-tactical-base animate-pulse'
-                : 'bg-tactical-surface hover:bg-tactical-elevated text-text-primary'
-            }`}
+                ? 'text-mercury-900 shadow-[0_0_30px_rgba(204,255,0,0.5)]'
+                : 'bg-white/10 border border-white/20 text-mercury-100 hover:bg-white/20'
+              }
+            `}
+            style={(isSpeaking || isPttActive) && !isMuted ? {
+              background: 'linear-gradient(135deg, #CCFF00 0%, #B8FF00 50%, #99CC00 100%)',
+            } : isMuted ? {} : undefined}
             title={isMuted ? 'Unmute' : 'Mute'}
           >
+            {/* Pulse ring when speaking */}
+            {(isSpeaking || isPttActive) && !isMuted && (
+              <span className="absolute inset-0 rounded-full animate-ping opacity-30 bg-accent-acid" />
+            )}
             {isMuted ? (
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="relative w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
               </svg>
             ) : (
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="relative w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
               </svg>
             )}
@@ -144,14 +166,14 @@ function AudioControls({
           {/* Leave button */}
           <button
             onClick={onLeave}
-            className="btn-danger px-6"
+            className="btn-danger px-6 py-3"
             title="Leave Room"
           >
             <span className="flex items-center gap-2">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
               </svg>
-              <span className="hidden sm:inline">{t('leave')}</span>
+              <span className="hidden sm:inline font-display uppercase tracking-wider">{t('leave')}</span>
             </span>
           </button>
         </div>
@@ -160,17 +182,17 @@ function AudioControls({
         <div className="w-24" />
       </div>
 
-      {/* Settings panel */}
+      {/* Settings panel - Glass card */}
       {showSettings && (
-        <div className="card-tactical p-4 mt-2 animate-fade-in">
-          <h4 className="text-sm font-display uppercase tracking-wider text-text-secondary mb-4">
+        <div className="card-chrome p-5 mt-2 animate-fade-in">
+          <h4 className="text-sm font-display uppercase tracking-widest text-mercury-300 mb-5">
             {t('audioSettings')}
           </h4>
 
           {/* Microphone Volume */}
-          <div className="mb-4 pb-4 border-b border-tactical-border">
-            <div className="flex justify-between text-xs text-text-muted mb-2">
-              <span>{t('micVolume')}</span>
+          <div className="mb-5 pb-5 border-b border-white/10">
+            <div className="flex justify-between text-xs text-mercury-400 mb-3">
+              <span className="font-display uppercase tracking-wider">{t('micVolume')}</span>
               <span className="font-mono">{micVolumePercent}%</span>
             </div>
             <input
@@ -180,47 +202,62 @@ function AudioControls({
               step="0.05"
               value={micVolume ?? 1}
               onChange={(e) => onMicVolumeChange(parseFloat(e.target.value))}
-              className="w-full h-2 bg-tactical-elevated rounded-lg appearance-none cursor-pointer accent-accent-action"
+              className="slider-chrome"
             />
-            <div className="flex justify-between text-xs text-text-muted mt-1">
+            <div className="flex justify-between text-xs text-mercury-500 mt-2">
               <span>0%</span>
               <span>200%</span>
             </div>
           </div>
 
           {/* Push to Talk toggle */}
-          <div className="mb-4 pb-4 border-b border-tactical-border">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-text-muted">{t('pushToTalk')}</span>
+          <div className="mb-5 pb-5 border-b border-white/10">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs text-mercury-400 font-display uppercase tracking-wider">{t('pushToTalk')}</span>
               <button
                 onClick={() => onPushToTalkChange(!pushToTalk)}
-                className={`relative w-12 h-6 rounded-full transition-colors ${
-                  pushToTalk ? 'bg-status-online' : 'bg-tactical-elevated'
-                }`}
+                className={`
+                  relative w-12 h-6 rounded-full transition-all duration-300
+                  ${pushToTalk
+                    ? 'bg-accent-acid shadow-[0_0_10px_rgba(204,255,0,0.4)]'
+                    : 'bg-mercury-700'
+                  }
+                `}
               >
                 <span
-                  className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
-                    pushToTalk ? 'left-7' : 'left-1'
-                  }`}
+                  className={`
+                    absolute top-1 w-4 h-4 rounded-full transition-all duration-300
+                    ${pushToTalk
+                      ? 'left-7 bg-mercury-900'
+                      : 'left-1 bg-mercury-400'
+                    }
+                  `}
+                  style={{
+                    background: pushToTalk
+                      ? 'linear-gradient(135deg, #27272A 0%, #18181B 100%)'
+                      : 'linear-gradient(135deg, #A1A1AA 0%, #71717A 100%)',
+                  }}
                 />
               </button>
             </div>
-            <p className="text-xs text-text-muted">
+            <p className="text-xs text-mercury-500 font-body">
               {pushToTalk ? t('pttEnabled') : t('pttDisabled')}
             </p>
 
             {/* PTT Key selector */}
             {pushToTalk && (
-              <div className="mt-3">
+              <div className="mt-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-text-muted">{t('pttKey')}:</span>
+                  <span className="text-xs text-mercury-400 font-display uppercase tracking-wider">{t('pttKey')}:</span>
                   <button
                     onClick={() => setIsCapturingKey(true)}
-                    className={`px-3 py-1 text-sm font-mono border transition-colors ${
-                      isCapturingKey
-                        ? 'border-accent-action bg-accent-action/20 text-accent-action animate-pulse'
-                        : 'border-tactical-border bg-tactical-elevated text-text-primary hover:border-accent-action'
-                    }`}
+                    className={`
+                      px-4 py-1.5 text-sm font-mono rounded-lg border transition-all duration-300
+                      ${isCapturingKey
+                        ? 'border-accent-acid bg-accent-acid/20 text-accent-acid animate-pulse shadow-[0_0_15px_rgba(204,255,0,0.3)]'
+                        : 'border-white/20 bg-white/5 text-mercury-200 hover:border-white/40'
+                      }
+                    `}
                   >
                     {isCapturingKey ? t('pressKey') : pttKey}
                   </button>
@@ -231,23 +268,36 @@ function AudioControls({
 
           {/* Voice Activation toggle - only show when NOT using PTT */}
           {!pushToTalk && (
-            <div className="mb-4 pb-4 border-b border-tactical-border">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-text-muted">{t('voiceActivation') || 'Voice Activation'}</span>
+            <div className="mb-5 pb-5 border-b border-white/10">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs text-mercury-400 font-display uppercase tracking-wider">{t('voiceActivation') || 'Voice Activation'}</span>
                 <button
                   onClick={() => onVoiceActivationChange(!voiceActivation)}
-                  className={`relative w-12 h-6 rounded-full transition-colors ${
-                    voiceActivation ? 'bg-status-online' : 'bg-tactical-elevated'
-                  }`}
+                  className={`
+                    relative w-12 h-6 rounded-full transition-all duration-300
+                    ${voiceActivation
+                      ? 'bg-accent-acid shadow-[0_0_10px_rgba(204,255,0,0.4)]'
+                      : 'bg-mercury-700'
+                    }
+                  `}
                 >
                   <span
-                    className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
-                      voiceActivation ? 'left-7' : 'left-1'
-                    }`}
+                    className={`
+                      absolute top-1 w-4 h-4 rounded-full transition-all duration-300
+                      ${voiceActivation
+                        ? 'left-7 bg-mercury-900'
+                        : 'left-1 bg-mercury-400'
+                      }
+                    `}
+                    style={{
+                      background: voiceActivation
+                        ? 'linear-gradient(135deg, #27272A 0%, #18181B 100%)'
+                        : 'linear-gradient(135deg, #A1A1AA 0%, #71717A 100%)',
+                    }}
                   />
                 </button>
               </div>
-              <p className="text-xs text-text-muted">
+              <p className="text-xs text-mercury-500 font-body">
                 {voiceActivation
                   ? (t('voiceActivationOn') || 'Audio only transmits when speaking')
                   : (t('voiceActivationOff') || 'Audio always transmits when unmuted')}
@@ -257,9 +307,9 @@ function AudioControls({
 
           {/* Threshold slider - only show when voice activation is ON and NOT using PTT */}
           {!pushToTalk && voiceActivation && (
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs text-text-muted">
-                <span>{t('voiceDetection')}</span>
+            <div className="space-y-3">
+              <div className="flex justify-between text-xs text-mercury-400">
+                <span className="font-display uppercase tracking-wider">{t('voiceDetection')}</span>
                 <span className="font-mono">{threshold} dB</span>
               </div>
               <input
@@ -268,13 +318,13 @@ function AudioControls({
                 max="-20"
                 value={threshold}
                 onChange={(e) => onThresholdChange(Number(e.target.value))}
-                className="w-full h-2 bg-tactical-elevated rounded-lg appearance-none cursor-pointer accent-accent-action"
+                className="slider-chrome"
               />
-              <div className="flex justify-between text-xs text-text-muted">
+              <div className="flex justify-between text-xs text-mercury-500">
                 <span>{t('moreSensitive')}</span>
                 <span>{t('lessSensitive')}</span>
               </div>
-              <p className="mt-2 text-xs text-text-muted">
+              <p className="mt-2 text-xs text-mercury-500 font-body">
                 {t('adjustThreshold') || 'Adjust to filter background noise'}
               </p>
             </div>
