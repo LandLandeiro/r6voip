@@ -155,6 +155,19 @@ export function useAudio() {
         data: { threshold: threshold + 5 }, // VAD slightly more sensitive
       });
 
+      // IMPORTANT: When voice activation is enabled, tracks should start DISABLED
+      // The VAD will enable them when it detects speech
+      // This prevents audio being transmitted before VAD kicks in
+      if (voiceActivationRef.current && !isMutedRef.current && !pttModeRef.current) {
+        console.log('[Audio] Voice activation enabled - starting with tracks disabled until speech detected');
+        stream.getAudioTracks().forEach((track) => {
+          track.enabled = false;
+        });
+        destination.stream.getAudioTracks().forEach((track) => {
+          track.enabled = false;
+        });
+      }
+
       setIsInitialized(true);
       console.log('[Audio] Initialized successfully');
 
@@ -187,17 +200,34 @@ export function useAudio() {
       voiceActivationRef.current = params.voiceActivation;
       localStorage.setItem('r6voip-voice-activation', params.voiceActivation.toString());
 
-      // When disabling voice activation, enable tracks if not muted
-      if (!params.voiceActivation && !isMutedRef.current) {
-        if (streamRef.current) {
-          streamRef.current.getAudioTracks().forEach((track) => {
-            track.enabled = true;
-          });
-        }
-        if (processedStreamRef.current) {
-          processedStreamRef.current.getAudioTracks().forEach((track) => {
-            track.enabled = true;
-          });
+      if (!isMutedRef.current && !pttModeRef.current) {
+        if (params.voiceActivation) {
+          // When ENABLING voice activation, disable tracks until VAD detects speech
+          // The VAD will enable them when it detects the user is speaking
+          console.log('[Audio] Voice activation enabled - disabling tracks until speech detected');
+          if (streamRef.current) {
+            streamRef.current.getAudioTracks().forEach((track) => {
+              track.enabled = false;
+            });
+          }
+          if (processedStreamRef.current) {
+            processedStreamRef.current.getAudioTracks().forEach((track) => {
+              track.enabled = false;
+            });
+          }
+        } else {
+          // When DISABLING voice activation, enable tracks (always on)
+          console.log('[Audio] Voice activation disabled - enabling tracks');
+          if (streamRef.current) {
+            streamRef.current.getAudioTracks().forEach((track) => {
+              track.enabled = true;
+            });
+          }
+          if (processedStreamRef.current) {
+            processedStreamRef.current.getAudioTracks().forEach((track) => {
+              track.enabled = true;
+            });
+          }
         }
       }
     }
@@ -237,16 +267,19 @@ export function useAudio() {
     const newMuted = !isMuted;
     isMutedRef.current = newMuted;
 
-    // When muting, disable tracks; when unmuting, let VAD control if voice activation is on
+    // When muting, disable tracks; when unmuting, handle based on voice activation setting
     if (streamRef.current) {
       streamRef.current.getAudioTracks().forEach((track) => {
         if (newMuted) {
           track.enabled = false;
         } else if (!voiceActivationRef.current) {
-          // Only enable immediately if voice activation is off
+          // Voice activation OFF: always enable when unmuting
+          track.enabled = true;
+        } else if (vadSpeakingRef.current) {
+          // Voice activation ON + VAD already detecting speech: enable immediately
           track.enabled = true;
         }
-        // If voice activation is on and unmuting, VAD will control the track
+        // Voice activation ON + not speaking: tracks stay disabled, VAD will enable when speech detected
       });
     }
     if (processedStreamRef.current) {
@@ -254,6 +287,8 @@ export function useAudio() {
         if (newMuted) {
           track.enabled = false;
         } else if (!voiceActivationRef.current) {
+          track.enabled = true;
+        } else if (vadSpeakingRef.current) {
           track.enabled = true;
         }
       });
