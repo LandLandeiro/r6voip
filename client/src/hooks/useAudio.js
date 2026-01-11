@@ -21,6 +21,10 @@ export function useAudio() {
     return saved !== 'false'; // Default to true
   });
 
+  // Expose streams as reactive state so components re-render when they change
+  const [rawStream, setRawStream] = useState(null);
+  const [processedStream, setProcessedStream] = useState(null);
+
   const audioContextRef = useRef(null);
   const streamRef = useRef(null);
   const sourceNodeRef = useRef(null);
@@ -67,6 +71,7 @@ export function useAudio() {
 
       setMicPermission('granted');
       streamRef.current = stream;
+      setRawStream(stream); // Expose as reactive state
 
       // Create audio context
       const audioContext = new AudioContext({ sampleRate: 48000 });
@@ -99,6 +104,7 @@ export function useAudio() {
       const destination = audioContext.createMediaStreamDestination();
       outputNodeRef.current = destination;
       processedStreamRef.current = destination.stream;
+      setProcessedStream(destination.stream); // Expose as reactive state
 
       // Connect the audio graph:
       // source -> gain -> vad (for speech detection) -> destination
@@ -334,6 +340,9 @@ export function useAudio() {
     micPermission,
     micVolume,
     voiceActivation,
+    // Reactive streams - triggers re-render when available
+    rawStream,
+    processedStream,
     // Parameters
     threshold,
     attackTime,
