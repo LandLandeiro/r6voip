@@ -255,30 +255,6 @@ function AudioControls({
             </div>
           )}
 
-          {/* Threshold slider - only show when voice activation is ON and NOT using PTT */}
-          {!pushToTalk && voiceActivation && (
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs text-text-muted">
-                <span>{t('voiceDetection')}</span>
-                <span className="font-mono">{threshold} dB</span>
-              </div>
-              <input
-                type="range"
-                min="-60"
-                max="-20"
-                value={threshold}
-                onChange={(e) => onThresholdChange(Number(e.target.value))}
-                className="w-full h-2 bg-tactical-elevated rounded-lg appearance-none cursor-pointer accent-accent-action"
-              />
-              <div className="flex justify-between text-xs text-text-muted">
-                <span>{t('moreSensitive')}</span>
-                <span>{t('lessSensitive')}</span>
-              </div>
-              <p className="mt-2 text-xs text-text-muted">
-                {t('adjustThreshold') || 'Adjust to filter background noise'}
-              </p>
-            </div>
-          )}
         </div>
       )}
     </div>
